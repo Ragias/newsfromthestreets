@@ -1,0 +1,47 @@
+<div id="main" class="lift:surround?with=default&at=content">
+   <script type="text/javascript">
+    var map;
+
+    function initialize() {
+      if (GBrowserIsCompatible()) {
+        map = new GMap2(document.getElementById("map_canvas"));
+        map.setCenter(new GLatLng(37.4419, -122.1419), 13);
+        map.setUIToDefault();
+      }
+    }
+    </script>
+	<h2>Article</h2>
+	<div id="map" style="width: 300px; height: 300px;"></div>
+
+	<div>
+		<div class="lift:ShowArticle">
+			<span class="title"></span>
+			<span class="article"></span>
+			<span class="username"></span>
+			<span class="date"></span>
+			<span class="lat"></span>
+			<span class="lng"></span>
+
+		</div>
+	</div>
+	<div>
+		<div class="lift:AddArticle?form=post">
+			Title:
+			<input name="title" id="the_title">
+			</input>
+			<br/>
+			Article: 			<textarea name="article" id="the_article" ></textarea>
+<br/>			lat:
+			<input name="lat" value="0.0" id="the_lat">
+			</input>
+			<br/>
+			lng:
+			<input name="lng" value="0.0" id="the_lng">
+			</input>
+			<br/>
+
+			<input type="submit" value="Submit">
+			</input>
+		</div>
+	</div>
+</div>

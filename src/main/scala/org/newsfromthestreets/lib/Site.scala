@@ -6,7 +6,7 @@ import http.S
 import sitemap._
 import sitemap.Loc._
 import net.liftmodules.mongoauth.Locs
-import org.newsfromthestreets.model.User
+import org.newsfromthestreets.model._
 
 case class MenuLoc(menu: Menu) {
   lazy val url: String = S.contextPath + menu.loc.calcDefaultHref
@@ -27,6 +27,9 @@ object Site extends Locs {
   private val profileParamMenu = Menu.param[User]("User", "Profile",
     User.findByUsername _,
     _.username.is) / "user" >> Loc.CalcValue(() => User.currentUser)
+    
+ 
+                                   
   lazy val profileLoc = profileParamMenu.toLoc
   val password = MenuLoc(Menu.i("Password") / "settings" / "password" >> RequireLoggedIn >> SettingsGroup)
   val account = MenuLoc(Menu.i("Account") / "settings" / "account" >> SettingsGroup >> RequireLoggedIn)
@@ -34,6 +37,7 @@ object Site extends Locs {
 
   val login = MenuLoc(Menu("Login") / "login" >> RequireNotLoggedIn >> SigningGroup)
   val register = MenuLoc(Menu("Register") / "register" >> RequireNotLoggedIn >> SigningGroup)
+  val article = MenuLoc(Menu("Article")/"article")
 
   private def menu = List(home.menu,
     login.menu,
@@ -43,7 +47,8 @@ object Site extends Locs {
     profileParamMenu,
     password.menu,
     account.menu,
-    editProfile.menu)
+    editProfile.menu,
+    article.menu)
 
   def siteMap = SiteMap(menu: _*)
 }
