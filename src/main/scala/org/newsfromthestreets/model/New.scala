@@ -5,7 +5,7 @@ import net.liftweb.mongodb.record.field._
 import net.liftweb.common._
 import com.foursquare.rogue.Rogue._
 import org.bson.types.ObjectId
-
+import net.liftweb.mongodb.BsonDSL._
 class Article extends MongoRecord[Article] with ObjectIdPk[Article] {
   def meta = Article
 
@@ -28,6 +28,9 @@ object Article extends Article with MongoMetaRecord[Article] {
       .lat(lat)
       .lng(lng)
       .saveTheRecord()
+  }
+  def edit(id:String,user:User,title:String,article:String,lat:Double,lng:Double){
+    Article.update(("_id"->id), (("user_id" -> user.id.is) ~ ("article" -> article) ~ ("title" -> title) ~ ("lat" -> lat) ~ ("lng" -> lng)))
   }
 }
 
