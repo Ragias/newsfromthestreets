@@ -6,32 +6,59 @@ import net.liftweb.common._
 import com.foursquare.rogue.Rogue._
 import org.bson.types.ObjectId
 import net.liftweb.mongodb.BsonDSL._
+import java.util.Date
+import java.text.SimpleDateFormat
+import org.joda.time.DateTime
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.mongodb.JObjectParser
+import net.liftweb.json.JsonAST.JObject
+
 class Article extends MongoRecord[Article] with ObjectIdPk[Article] {
   def meta = Article
 
   object title extends StringField(this, 60)
   object user_id extends ObjectIdRefField(this, User)
   object article extends TextareaField(this, 500)
-  object date extends DateField(this)
+  object date extends DateTimeField(this)
   object lat extends DoubleField(this)
   object lng extends DoubleField(this)
 
 }
 
-object Article extends Article with MongoMetaRecord[Article] {
+object Article extends Article with MongoMetaRecord[Article] with Loggable {
   def add(user: User, title: String, article: String, lat: Double, lng: Double): Box[Article] = {
-    Article.createRecord
-      .user_id(user.id.is)
-      .title(title)
-      .article(article)
-      .date(new java.util.Date)
-      .lat(lat)
-      .lng(lng)
-      .saveTheRecord()
+     val a= Article.createRecord
+      a.user_id(user.id.is)
+      a.title(title)
+      
+      a.article(article)
+      a.date(Full(new DateTime))
+      a.lat(lat)
+      a.lng(lng)
+      a.saveTheRecord()
   }
-  def edit(id:String,user:User,title:String,article:String,lat:Double,lng:Double){
-    Article.update(("_id"->id), (("user_id" -> user.id.is) ~ ("article" -> article) ~ ("title" -> title) ~ ("lat" -> lat) ~ ("lng" -> lng)))
+  
+  def edit(id: String, user: User, title: String, article: String, lat: Double, lng: Double) {
+    Article.update(("_id" -> id), (("user_id" -> user.id.is) ~ ("article" -> article) ~ ("title" -> title) ~ ("lat" -> lat) ~ ("lng" -> lng)))
   }
+
+  def listByDate(date: String): List[Article] = {
+    try {
+      val formatter = new SimpleDateFormat("dd-MM-yy")
+      val d = new DateTime(formatter.parse(date))
+      Article.where(_.date after d).fetch()
+    } catch {
+      case e =>
+        logger.error(e.getMessage())
+        List()
+
+    }
+  }
+  
+  def createFromJson(user:User,json:JValue)={
+    Article.createRecord.user_id(user.id.is).setFieldsFromJValue(json)   
+  }
+  
 }
 
 class CommentNew extends MongoRecord[CommentNew] with ObjectIdPk[CommentNew] {
@@ -51,7 +78,6 @@ object CommentNew extends CommentNew with MongoMetaRecord[CommentNew] {
       .message(message)
       .saveTheRecord()
   }
-
 
 }
 

@@ -1,0 +1,40 @@
+<div id="main" class="lift:surround?with=default&at=content">
+
+	<h2>List of Articles</h2>
+	<div id="map_canvas" style="width: 500px; height: 300px"></div>
+
+	<script type="text/javascript">
+		function initialize() {
+			var mapOptions = {
+				center : new google.maps.LatLng(-34.397, 150.644),
+				zoom : 8,
+				mapTypeId : google.maps.MapTypeId.ROADMAP
+			};
+			var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+
+			$(document).ready(function() {
+
+				$.getJSON("/api/newsfromthestreets/articles/all", function(json) {
+					alert(json)
+					if (json.length > 0) {
+						for ( i = 0; i < json.length; i++) {
+							var location = json[i];
+							addMarker(location);
+						}
+					}
+				});
+
+				function addMarker(location) {
+					var point = new google.maps.LatLng(location.lat, location.lng);
+					var marker = new google.maps.Marker({
+						position : point,
+						map : map,
+						title : location.name
+					});
+				};
+			});
+
+		}
+
+	</script>
+</div>

@@ -19,7 +19,7 @@
 			<input name="title" id="the_title">
 			</input>
 			<br/>
-			Article: <textarea name="article" id="the_article" ></textarea>
+			Article: 			<textarea name="article" id="the_article" ></textarea>
 			<br/>
 			lat:
 			<input name="lat" value="0.0" id="the_lat">
@@ -46,7 +46,6 @@
 			var latFloat = parseFloat(latStr);
 			var lngFloat = parseFloat(lngStr);
 			if (!isNaN(latFloat) && !isNaN(lngFloat)) {
-				alert(latFloat + " " + lngFloat);
 				var mapOptions = {
 					zoom : 4,
 					center : new google.maps.LatLng(latFloat, lngFloat),
@@ -90,14 +89,14 @@
 						marker = new google.maps.Marker({
 							position : location,
 							map : map
-							});
+						});
 					}
 				}
 
 
 				google.maps.event.addListener(map, 'click', function(event) {
-					document.getElementById('the_lat').value=event.latLng.lat(); 
-                    document.getElementById('the_lng').value=event.latLng.lng();
+					document.getElementById('the_lat').value = event.latLng.lat();
+					document.getElementById('the_lng').value = event.latLng.lng();
 					//alert(event.latLng.lat()+" "+event.latLng.lng())
 					placeMarker(event.latLng);
 				});

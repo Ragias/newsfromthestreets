@@ -10,6 +10,7 @@ import org.newsfromthestreets.model._
 import _root_.net.liftweb.sitemap.Loc._
 import org.newsfromthestreets.lib._
 import net.liftmodules.mongoauth.MongoAuth
+import org.newsfromthestreets.rest.ArticleJsons
 
 class Boot {
   def boot {
@@ -32,6 +33,8 @@ class Boot {
         ParsePath(List("exceptions", "404"), "html", false, false))
     })
 
+    LiftRules.dispatch.append(ArticleJsons)
+    
     // set character encoding
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
 
