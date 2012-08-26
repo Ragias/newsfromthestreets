@@ -12,6 +12,34 @@ import org.joda.time.DateTime
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mongodb.JObjectParser
 import net.liftweb.json.JsonAST.JObject
+import org.joda.time.LocalDate
+import java.util.Locale
+import org.joda.time.format.DateTimeFormat
+
+class ArticleDate extends MongoRecord[ArticleDate] with ObjectIdPk[ArticleDate] {
+  def meta = ArticleDate
+  object date extends DateTimeField(this)
+
+}
+
+object ArticleDate extends ArticleDate with MongoMetaRecord[ArticleDate] with Loggable {
+  def add() = {
+    val ad = ArticleDate.createRecord
+    ad.date(Full((new LocalDate).toDateTimeAtStartOfDay()))
+    ad.saveTheRecord()
+  }
+}
+
+class ArticleCategory extends MongoRecord[ArticleCategory] with ObjectIdPk[ArticleCategory] {
+  def meta = ArticleCategory
+  object name extends StringField(this, 20)
+}
+
+object ArticleCategory extends ArticleCategory with MongoMetaRecord[ArticleCategory] with Loggable {
+  def add(name: String) = {
+    ArticleCategory.createRecord.name(name).saveTheRecord()
+  }
+}
 
 class Article extends MongoRecord[Article] with ObjectIdPk[Article] {
   def meta = Article
@@ -19,46 +47,88 @@ class Article extends MongoRecord[Article] with ObjectIdPk[Article] {
   object title extends StringField(this, 60)
   object user_id extends ObjectIdRefField(this, User)
   object article extends TextareaField(this, 500)
-  object date extends DateTimeField(this)
+  object date_id extends ObjectIdRefField(this, ArticleDate)
+  object category_id extends ObjectIdRefField(this, ArticleCategory)
   object lat extends DoubleField(this)
   object lng extends DoubleField(this)
 
 }
 
 object Article extends Article with MongoMetaRecord[Article] with Loggable {
-  def add(user: User, title: String, article: String, lat: Double, lng: Double): Box[Article] = {
-     val a= Article.createRecord
-      a.user_id(user.id.is)
-      a.title(title)
-      
-      a.article(article)
-      a.date(Full(new DateTime))
-      a.lat(lat)
-      a.lng(lng)
-      a.saveTheRecord()
+  def add(user: User, title: String, article: String, category: String, lat: Double, lng: Double): Box[Article] = {
+    val a = Article.createRecord
+    a.user_id(user.id.is)
+    a.title(title)
+    a.article(article)
+
+    val today = (new LocalDate).toDateTimeAtStartOfDay()
+    ArticleDate.where(_.date between (today, today.plusDays(1))).fetch().headOption match {
+      case Some(ad) => a.date_id(ad.id.is)
+      case None => ArticleDate.add().map(ad => a.date_id(ad.id.is)).getOrElse(logger.error("The ArticleDate does not add a new date "))
+    }
+    ArticleCategory.where(_.name eqs category).fetch().headOption match {
+      case Some(ac) => a.category_id(ac.id.is)
+      case None => ArticleCategory.add(category).map(ac => a.category_id(ac.id.is)).getOrElse(logger.error("The ArticleCategory does not add a new date "))
+    }
+    a.lat(lat)
+    a.lng(lng)
+    a.saveTheRecord()
   }
-  
+
   def edit(id: String, user: User, title: String, article: String, lat: Double, lng: Double) {
     Article.update(("_id" -> id), (("user_id" -> user.id.is) ~ ("article" -> article) ~ ("title" -> title) ~ ("lat" -> lat) ~ ("lng" -> lng)))
   }
 
   def listByDate(date: String): List[Article] = {
-    try {
+    if(date != "All"){
+     try {
       val formatter = new SimpleDateFormat("dd-MM-yy")
       val d = new DateTime(formatter.parse(date))
-      Article.where(_.date after d).fetch()
+      ArticleDate.where(_.date after d).fetch().map {
+        ad => Article.where(_.date_id eqs ad.id.is).fetch().head
+      }
     } catch {
       case e =>
         logger.error(e.getMessage())
         List()
 
     }
+    }else{
+      Article.findAll
+    }
+  }
+
+  def listByCategory(category: String): List[Article] = {
+    ArticleCategory.where(_.name eqs category).fetch().map {
+      ac => Article.where(_.category_id eqs ac.id.is).fetch().head
+    }
   }
   
-  def createFromJson(user:User,json:JValue)={
-    Article.createRecord.user_id(user.id.is).setFieldsFromJValue(json)   
+  def listByCategoryAndDate(category:Box[String], date:Box[String]):List[Article]={
+    if(category.isEmpty){
+    	if(date.isEmpty){
+    	  Article.findAll
+    	}else{
+    	  Article.listByDate(date.get)
+        }
+    }else{
+      if(date.isEmpty){
+        Article.listByCategory(category.get)
+      }else{
+        var fmt = DateTimeFormat.forPattern("dd-MM-yy");
+        val d = fmt.parseDateTime(date.get)
+        val ad =  ArticleDate.where(_.date between (d,d.plusDays(1))).fetch().head
+        val ac =  ArticleCategory.where(_.name eqs category.get).fetch().head
+        Article.where(_.date_id eqs ad.id.is)
+        .and(_.category_id eqs ac.id.is).fetch()
+      }
+    }
   }
-  
+
+  def createFromJson(user: User, json: JValue) = {
+    Article.createRecord.user_id(user.id.is).setFieldsFromJValue(json)
+  }
+
 }
 
 class CommentNew extends MongoRecord[CommentNew] with ObjectIdPk[CommentNew] {
