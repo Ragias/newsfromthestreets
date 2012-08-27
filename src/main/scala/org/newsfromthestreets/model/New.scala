@@ -186,7 +186,7 @@ object CommentArticle extends CommentArticle with MongoMetaRecord[CommentArticle
   }
 
   def showByNumberOfResults(art: Article, num: Int): List[CommentArticle] = {
-    CommentArticle.where(_.article_id eqs art.id.is).orderAsc(_.id).fetch(num)
+    CommentArticle.where(_.article_id eqs art.id.is).orderDesc(_.id).fetch(num).reverse
   }
 
 }
