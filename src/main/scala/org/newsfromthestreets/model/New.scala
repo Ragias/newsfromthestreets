@@ -28,6 +28,13 @@ object ArticleDate extends ArticleDate with MongoMetaRecord[ArticleDate] with Lo
     ad.date(Full((new LocalDate).toDateTimeAtStartOfDay()))
     ad.saveTheRecord()
   }
+  def findOrAdd():Box[ArticleDate]={
+    val today = (new LocalDate).toDateTimeAtStartOfDay()
+    ArticleDate.where(_.date between (today, today.plusDays(1))).fetch().headOption match {
+      case Some(ad) => Full(ad)
+      case None => ArticleDate.add()
+    }
+  }
 }
 
 class ArticleCategory extends MongoRecord[ArticleCategory] with ObjectIdPk[ArticleCategory] {
@@ -38,6 +45,12 @@ class ArticleCategory extends MongoRecord[ArticleCategory] with ObjectIdPk[Artic
 object ArticleCategory extends ArticleCategory with MongoMetaRecord[ArticleCategory] with Loggable {
   def add(name: String) = {
     ArticleCategory.createRecord.name(name).saveTheRecord()
+  }
+  def findOrAdd(name: String): Box[ArticleCategory] = {
+    ArticleCategory.where(_.name eqs name).fetch().headOption match {
+      case Some(ac) => Full(ac)
+      case None => ArticleCategory.add(name)
+    }
   }
 }
 
@@ -75,25 +88,40 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
     a.saveTheRecord()
   }
 
-  def edit(id: String, user: User, title: String, article: String, lat: Double, lng: Double) {
-    Article.update(("_id" -> id), (("user_id" -> user.id.is) ~ ("article" -> article) ~ ("title" -> title) ~ ("lat" -> lat) ~ ("lng" -> lng)))
+  def edit(id: String, user: User, title: String, article: String, category: String, lat: Double, lng: Double) {
+   
+    ArticleCategory.findOrAdd(category).map {
+      cat =>
+        ArticleDate.findOrAdd.map{
+          date =>
+            Article.update(("_id" -> id), (("user_id" -> user.id.is) 
+            ~ ("category_id" -> cat.id.is) 
+            ~ ("article" -> article) 
+            ~ ("title" -> title) 
+            ~ ("date_id" -> date.id.is)
+            ~ ("lat" -> lat) 
+            ~ ("lng" -> lng)))
+        }
+        
+
+    }
   }
 
   def listByDate(date: String): List[Article] = {
-    if(date != "All"){
-     try {
-      val formatter = new SimpleDateFormat("dd-MM-yy")
-      val d = new DateTime(formatter.parse(date))
-      ArticleDate.where(_.date after d).fetch().map {
-        ad => Article.where(_.date_id eqs ad.id.is).fetch().head
-      }
-    } catch {
-      case e =>
-        logger.error(e.getMessage())
-        List()
+    if (date != "All") {
+      try {
+        val formatter = new SimpleDateFormat("dd-MM-yy")
+        val d = new DateTime(formatter.parse(date))
+        ArticleDate.where(_.date after d).fetch().map {
+          ad => Article.where(_.date_id eqs ad.id.is).fetch().head
+        }
+      } catch {
+        case e =>
+          logger.error(e.getMessage())
+          List()
 
-    }
-    }else{
+      }
+    } else {
       Article.findAll
     }
   }
@@ -103,24 +131,32 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
       ac => Article.where(_.category_id eqs ac.id.is).fetch().head
     }
   }
-  
-  def listByCategoryAndDate(category:Box[String], date:Box[String]):List[Article]={
-    if(category.isEmpty){
-    	if(date.isEmpty){
-    	  Article.findAll
-    	}else{
-    	  Article.listByDate(date.get)
-        }
-    }else{
-      if(date.isEmpty){
+
+  def listByCategoryAndDate(category: Box[String], date: Box[String]): List[Article] = {
+    if (category.isEmpty) {
+      if (date.isEmpty) {
+        Article.findAll
+      } else {
+        Article.listByDate(date.get)
+      }
+    } else {
+      if (date.isEmpty) {
         Article.listByCategory(category.get)
-      }else{
+      } else {
         var fmt = DateTimeFormat.forPattern("dd-MM-yy");
-        val d = fmt.parseDateTime(date.get)
-        val ad =  ArticleDate.where(_.date between (d,d.plusDays(1))).fetch().head
-        val ac =  ArticleCategory.where(_.name eqs category.get).fetch().head
-        Article.where(_.date_id eqs ad.id.is)
-        .and(_.category_id eqs ac.id.is).fetch()
+        var ls : List[Article] = List()
+        for {
+          dat <- date
+          ad <- {
+            val d = fmt.parseDateTime(dat)
+            ArticleDate.where(_.date between (d, d.plusDays(1))).fetch().headOption
+          }
+          ac <- ArticleCategory.where(_.name eqs category.get).fetch().headOption
+        } yield {
+          ls= Article.where(_.date_id eqs ad.id.is)
+            .and(_.category_id eqs ac.id.is).fetch()
+        } 
+        ls
       }
     }
   }
@@ -131,8 +167,8 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
 
 }
 
-class CommentNew extends MongoRecord[CommentNew] with ObjectIdPk[CommentNew] {
-  def meta = CommentNew
+class CommentArticle extends MongoRecord[CommentArticle] with ObjectIdPk[CommentArticle] {
+  def meta = CommentArticle
 
   object article_id extends ObjectIdRefField(this, Article)
   object user_id extends ObjectIdRefField(this, User)
@@ -140,13 +176,17 @@ class CommentNew extends MongoRecord[CommentNew] with ObjectIdPk[CommentNew] {
 
 }
 
-object CommentNew extends CommentNew with MongoMetaRecord[CommentNew] {
+object CommentArticle extends CommentArticle with MongoMetaRecord[CommentArticle] {
   def add(user: User, article: Article, message: String) = {
-    CommentNew.createRecord
+    CommentArticle.createRecord
       .user_id(user.id.is)
       .article_id(article.id.is)
       .message(message)
       .saveTheRecord()
+  }
+
+  def showByNumberOfResults(art: Article, num: Int): List[CommentArticle] = {
+    CommentArticle.where(_.article_id eqs art.id.is).orderAsc(_.id).fetch(num)
   }
 
 }

@@ -11,16 +11,33 @@
 				mapTypeId : google.maps.MapTypeId.ROADMAP
 			};
 			var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
-			var markerArr = new Array();
 			$(document).ready(function() {
+				var oldDateStr = "";
+				var oldCategoryStr = "";
+				var markerArr = new Array();
 
 				var dateStr = "";
 				var categoryStr = "";
+
+				function isChanged() {
+					if (oldDateStr == dateStr && oldCategoryStr == categoryStr) {
+						return false;
+					} else {
+						return true;
+					}
+				}
+
 				(function() {
-					if (!markerArr.isEmpty) {
-						while (markerArr[0]) {
-							markerArr.pop().setMap(null);
+					if (isChanged()) {
+						console.log(oldDateStr + " == " + dateStr + " " + oldCategoryStr + " == " + categoryStr)
+
+						if (!markerArr.isEmpty) {
+							while (markerArr[0]) {
+								markerArr.pop().setMap(null);
+							}
 						}
+						oldDateStr = dateStr
+						oldCategoryStr = categoryStr
 					}
 
 					dateStr = $("#the_date option:selected").text();
@@ -44,13 +61,40 @@
 				})();
 
 				function addMarker(location) {
-					var point = new google.maps.LatLng(location.lat, location.lng);
-					var marker = new google.maps.Marker({
-						position : point,
-						map : map,
-						title : location.name
-					});
-					markerArr.push(marker);
+
+					var check = false;
+					for ( i = 0; i < markerArr.length; i++) {
+						console.log(markerArr[i].title + " " + location.title + " " + markerArr.length)
+						if (markerArr[i].title == location.title) {
+							check = true;
+
+							if (location.lat == markerArr[i].position.lat() && location.lng == markerArr[i].position.lng()) {
+								break;
+							}
+							var point = new google.maps.LatLng(location.lat, location.lng);
+
+							var marker = new google.maps.Marker({
+								position : point,
+								map : map,
+								title : location.title
+							});
+							markerArr[i].setMap(null)
+							markerArr[i] = marker;
+							break;
+						}
+					}
+					if (!check) {
+						console.log(location.title)
+						var point = new google.maps.LatLng(location.lat, location.lng);
+
+						var marker = new google.maps.Marker({
+							position : point,
+							map : map,
+							title : location.title
+						});
+						markerArr.push(marker);
+					}
+
 				};
 			});
 
