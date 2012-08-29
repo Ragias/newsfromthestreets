@@ -78,16 +78,22 @@ class SearchGroup extends MongoRecord[SearchGroup] with ObjectIdPk[SearchGroup] 
 }
 
 object SearchGroup extends SearchGroup with MongoMetaRecord[SearchGroup] with Loggable {
-  def add(user:User,name: String, description: String) = {
+  def add(user:User,name: String, description: String):Box[SearchGroup] = {
+    
     SearchGroup.createRecord
       .name(name)
       .description(description)
       .num(1)
       .admin_id(user.id.is)
       .saveTheRecord()
+    
   }
   def edit(group: SearchGroup, name: String, description: String) {
     SearchGroup.update(("_id" -> group.id.is), (("name" -> name) ~ ("description" -> description) ~ ("num" -> group.num.is)))
+  }
+  
+  def findByName(name:String)={
+    SearchGroup.where(_.name eqs name).fetch()
   }
 }
 

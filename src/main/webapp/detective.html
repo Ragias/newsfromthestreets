@@ -4,38 +4,40 @@
 	<span id="labelMode"> </span>
 	<br/>
 	<span id="detectiveMode"> </span>
+	<span id="currentLat"> </span>
+	<span id="currentLon"> </span>
 	<div class="lift:DetectiveModeSnippet"></div>
 	<script>
 		var map;
 		var markerArr = new Array();
 		function initialize() {
+
+			var watch;
 			var mapOptions = {
 				zoom : 6,
 				mapTypeId : google.maps.MapTypeId.ROADMAP
 			};
 			map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
-			var pos = new google.maps.LatLng(35, 25);
-			map.setCenter(pos);
-			var watch;
-
 			// Try HTML5 geolocation
 			if (navigator.geolocation) {
-				var t = (function() {
-					console.log("shit!");
-					watch = navigator.geolocation.getCurrentPosition(function(position) {
-				
 
-						$.ajax({
-							url : "/api/newsfromthestreets/detective",
-							type : "PUT",
-							dataType : 'json',
-							contentType : 'application/json',
-							data : JSON.stringify({
-								"lat" : position.coords.latitude,
-								"lng" : position.coords.longitude
-							})
-						});
+				navigator.geolocation.watchPosition(function(position) {
+					var pos = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+					map.setCenter(pos);
 
+					document.getElementById('currentLat').innerHTML = position.coords.latitude;
+					document.getElementById('currentLon').innerHTML = position.coords.longitude;
+					$.ajax({
+						url : "/api/newsfromthestreets/detective",
+						type : "PUT",
+						dataType : 'json',
+						contentType : 'application/json',
+						data : JSON.stringify({
+							"lat" : position.coords.latitude,
+							"lng" : position.coords.longitude
+						})
+					}); 
+					var checkJson = (function() {
 						$.getJSON("/api/newsfromthestreets/detectives/true", function(json) {
 
 							if (json.length > 0) {
@@ -55,17 +57,20 @@
 
 						});
 
-					}, function() {
-						handleNoGeolocation(true);
-					}, {
-						enableHighAccuracy : true,
-						maximumAge : 100000,
-						timeout : 100000
+						setTimeout(arguments.callee, 10000);
+
 					});
-					setTimeout(arguments.callee, 10000);
+					checkJson();
+				}, function() {
+					handleNoGeolocation(true);
+				}, {
+					enableHighAccuracy : true,
+					maximumAge : 100000,
+					timeout : 100000
 				});
-				t();
+
 			} else {
+				alert("aaa");
 				// Browser doesn't support Geolocation
 				handleNoGeolocation(false);
 			}
