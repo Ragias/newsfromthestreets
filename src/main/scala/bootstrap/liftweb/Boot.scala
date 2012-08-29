@@ -10,8 +10,7 @@ import org.newsfromthestreets.model._
 import _root_.net.liftweb.sitemap.Loc._
 import org.newsfromthestreets.lib._
 import net.liftmodules.mongoauth.MongoAuth
-import org.newsfromthestreets.rest.ArticleJsons
-
+import org.newsfromthestreets.rest._
 class Boot {
   def boot {
 
@@ -24,17 +23,17 @@ class Boot {
     // where to search snippet
     LiftRules.addToPackages("org.newsfromthestreets")
 
-    
     // build sitemap
     LiftRules.setSiteMap(Site.siteMap)
-    
+
     LiftRules.uriNotFound.prepend(NamedPF("404handler") {
       case (req, failure) => NotFoundAsTemplate(
         ParsePath(List("exceptions", "404"), "html", false, false))
     })
 
     LiftRules.dispatch.append(ArticleJsons)
-    
+    LiftRules.dispatch.append(DetectiveJsons)
+
     // set character encoding
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
 

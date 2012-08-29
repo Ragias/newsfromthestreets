@@ -15,7 +15,7 @@ import java.text.SimpleDateFormat
 class ShowArticle {
   val param = S.param("id")
   def render(in: NodeSeq): NodeSeq = {
-    var xthml: NodeSeq = <span>Nothing</span>
+    var out: NodeSeq = <span></span>
     for {
       param <- S.param("id")
       q <- S.param("q")
@@ -23,24 +23,36 @@ class ShowArticle {
       user <- article.user_id.obj
     } yield {
       if (q == "show") {
-        xthml = <div class="showArticle">
+        out = <div class="showArticle">
                   <span class="title"> { article.title.is }</span><br/>
                   <span class="article"> { article.article.is }</span><br/>
                   <span class="username"> { user.name.is } </span><br/>
                   <span class="date"> {
-                    article.date_id.obj match {
-                      case Full(d) => d.date.is.getTime().toString()
-                      case _ => "No date"
-                    }
+                    article.id.is.getTime().date.toString()
                   } </span><br/>
                   <span class="lat"> { article.lat.is.toString() }</span><br/>
                   <span class="lng"> { article.lng.is.toString() } </span><br/>
                 </div>
+        User.currentUser.map{
+          u => 
+           out =  <a id="addArticle" href="/article?q=add"> Add Article</a> ++ out
+         }          
+       
       }
+         
+       
+         
 
     }
-
-    xthml
+    if(S.param("q").isEmpty){
+      User.currentUser.map{
+          u => 
+           out =  <a id="addArticle" href="/article?q=add"> Add Article</a> ++ out
+         }
+    }
+  
+      
+    out
   }
 }
 
@@ -76,11 +88,12 @@ class AddArticle extends StatefulSnippet {
   def dispatch = { case "render" => render }
   def render(in: NodeSeq): NodeSeq = {
     val param = S.param("q")
+    var out: NodeSeq = <span></span>
+
     User.currentUser.map {
       user =>
-
         if (param.getOrElse("") == "add") {
-          ("name=title" #> SHtml.text(title, title = _, "id" -> "the_title") &
+          out = ("name=title" #> SHtml.text(title, title = _, "id" -> "the_title") &
             "name=category" #> SHtml.text(category, category = _, "id" -> "the_category") &
             "name=article" #> SHtml.textarea(article, article = _, "id" -> "the_article") &
             "name=lat" #> SHtml.text(latStr, latStr = _, "id" -> "the_lat") &
@@ -90,23 +103,27 @@ class AddArticle extends StatefulSnippet {
           article_id = S.param("id").getOrElse("")
           Article.find(article_id).map {
             a =>
-              title = a.title.is
-              article = a.article.is
-              category = a.category_id.obj.map(_.name.is).getOrElse("")
-              latStr = a.lat.is.toString()
-              lngStr = a.lng.is.toString()
-
+              User.currentId.map {
+                uid =>
+                  if (uid.toStringMongod() == a.user_id.is.toStringMongod()) {
+                    title = a.title.is
+                    article = a.article.is
+                    category = a.category_id.obj.map(_.name.is).getOrElse("")
+                    latStr = a.lat.is.toString()
+                    lngStr = a.lng.is.toString()
+                    out = ("name=title" #> SHtml.text(title, title = _, "id" -> "the_title") &
+                      "name=category" #> SHtml.text(category, category = _, "id" -> "the_category") &
+                      "name=article" #> SHtml.textarea(article, article = _, "id" -> "the_article") &
+                      "name=lat" #> SHtml.text(latStr, latStr = _, "id" -> "the_lat") &
+                      "name=lng" #> SHtml.text(lngStr, lngStr = _, "id" -> "the_lng") &
+                      "type=submit" #> SHtml.onSubmitUnit(edit))(in)
+                  }
+              }
           }
-          ("name=title" #> SHtml.text(title, title = _, "id" -> "the_title") &
-            "name=category" #> SHtml.text(category, category = _, "id" -> "the_category") &
-            "name=article" #> SHtml.textarea(article, article = _, "id" -> "the_article") &
-            "name=lat" #> SHtml.text(latStr, latStr = _, "id" -> "the_lat") &
-            "name=lng" #> SHtml.text(lngStr, lngStr = _, "id" -> "the_lng") &
-            "type=submit" #> SHtml.onSubmitUnit(edit))(in)
-        } else {
-          <span></span>
+
         }
-    }.getOrElse(<span></span>)
+    }
+    out
   }
 
 }
@@ -135,10 +152,20 @@ class ListOfArticles extends StatefulSnippet {
                                               case _ => ""
                                             }
                                           }</span><br/>
-                                          <span> { a.date_id.is.getTime().toString() }</span><br/>
+                                          <span> { a.id.is.getTime().date.toString() }</span><br/>
                                           <span> { a.article.is }</span><br/>
                                           <span> { a.user_id.obj.get.name.is }</span><br/>
-                                          <a href={ "/article?q=show&id=" + a.id.toString() }> more </a><br/>
+                                          <a href={ "/article?q=show&id=" + a.id.toString() }> more </a>
+                                          <span>{
+                                            var editXml:NodeSeq = <span></span>
+                                            User.currentId.map {
+                                              uid =>
+                                                if (uid.toStringMongod() == a.user_id.is.toStringMongod()) {
+                                                  editXml = <a href={ "/article?q=edit&id=" + a.id.toString() }> edit </a>
+                                                }
+                                            }
+                                            editXml
+                                          }</span><br/>
                                         }
                                       </li>
                                   }

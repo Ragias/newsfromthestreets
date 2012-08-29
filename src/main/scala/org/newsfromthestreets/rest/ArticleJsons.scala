@@ -11,7 +11,7 @@ object ArticleJsons extends RestHelper {
     case "api" :: "newsfromthestreets" :: "articles" :: category :: date :: _ JsonGet _ => {
       val ad: Box[String] = if (date == "All") Empty else Full(date)
       val ac: Box[String] = if (category == "All") Empty else Full(category)
-       println("REEEEEEEEEEEESSST " + ac.toString() + " " + ad.toString)
+
       JArray(Article.listByCategoryAndDate(ac, ad).map {
         a => ("title" -> a.title.is) ~ ("lat" -> a.lat.is) ~ ("lng" -> a.lng.is)
       })
@@ -27,6 +27,15 @@ object ArticleJsons extends RestHelper {
       ForbiddenResponse("No access for you")
 
     }
-
+    
+    case "api" :: "example":: _ JsonGet _ => {
+      var resp:JObject =  ("user" -> "none") 
+      User.currentUser.map {
+        u =>
+         resp = ("user" -> u.name.is)
+      }
+      resp
+    }
+  
   }
 }

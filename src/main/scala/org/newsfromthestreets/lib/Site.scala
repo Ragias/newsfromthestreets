@@ -41,6 +41,8 @@ object Site extends Locs {
   val article = MenuLoc(Menu("Article")/"article")
   val listOfArticles = MenuLoc(Menu("List Of Articles")/"listofarticles")
   
+  val detective = MenuLoc(Menu("Detective")/"detective">> RequireLoggedIn)
+  
   private def menu = List(home.menu,
     login.menu,
     register.menu,
@@ -51,7 +53,8 @@ object Site extends Locs {
     account.menu,
     editProfile.menu,
     article.menu ,
-    listOfArticles.menu)
+    listOfArticles.menu,
+    detective.menu)
 
   def siteMap = SiteMap(menu: _*)
 }

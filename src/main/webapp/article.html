@@ -74,7 +74,8 @@
 				var marker = new google.maps.Marker({
 					position : map.getCenter(),
 					map : map,
-					title : 'Click to zoom'
+					title : 'Click to zoom',
+					icon : 'images/beachflag.png'
 				});
 
 				google.maps.event.addListener(map, 'center_changed', function() {
@@ -105,7 +106,9 @@
 					} else {
 						marker = new google.maps.Marker({
 							position : location,
-							map : map
+							map : map,
+							icon : 'images/beachflag.png'
+
 						});
 					}
 				}

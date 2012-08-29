@@ -9,12 +9,10 @@ import net.liftweb.mongodb.BsonDSL._
 import java.util.Date
 import java.text.SimpleDateFormat
 import org.joda.time.DateTime
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.mongodb.JObjectParser
-import net.liftweb.json.JsonAST.JObject
 import org.joda.time.LocalDate
 import java.util.Locale
 import org.joda.time.format.DateTimeFormat
+import net.liftweb.json.JsonAST.JValue
 
 class ArticleDate extends MongoRecord[ArticleDate] with ObjectIdPk[ArticleDate] {
   def meta = ArticleDate
@@ -22,13 +20,14 @@ class ArticleDate extends MongoRecord[ArticleDate] with ObjectIdPk[ArticleDate] 
 
 }
 
+
 object ArticleDate extends ArticleDate with MongoMetaRecord[ArticleDate] with Loggable {
   def add() = {
     val ad = ArticleDate.createRecord
     ad.date(Full((new LocalDate).toDateTimeAtStartOfDay()))
     ad.saveTheRecord()
   }
-  def findOrAdd():Box[ArticleDate]={
+  def findOrAdd(): Box[ArticleDate] = {
     val today = (new LocalDate).toDateTimeAtStartOfDay()
     ArticleDate.where(_.date between (today, today.plusDays(1))).fetch().headOption match {
       case Some(ad) => Full(ad)
@@ -89,20 +88,19 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
   }
 
   def edit(id: String, user: User, title: String, article: String, category: String, lat: Double, lng: Double) {
-   
+
     ArticleCategory.findOrAdd(category).map {
       cat =>
-        ArticleDate.findOrAdd.map{
+        ArticleDate.findOrAdd.map {
           date =>
-            Article.update(("_id" -> id), (("user_id" -> user.id.is) 
-            ~ ("category_id" -> cat.id.is) 
-            ~ ("article" -> article) 
-            ~ ("title" -> title) 
-            ~ ("date_id" -> date.id.is)
-            ~ ("lat" -> lat) 
-            ~ ("lng" -> lng)))
+            Article.update(("_id" -> id), (("user_id" -> user.id.is)
+              ~ ("category_id" -> cat.id.is)
+              ~ ("article" -> article)
+              ~ ("title" -> title)
+              ~ ("date_id" -> date.id.is)
+              ~ ("lat" -> lat)
+              ~ ("lng" -> lng)))
         }
-        
 
     }
   }
@@ -119,7 +117,7 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
         case e =>
           logger.error(e.getMessage())
           List()
-
+          
       }
     } else {
       Article.findAll
@@ -144,7 +142,7 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
         Article.listByCategory(category.get)
       } else {
         var fmt = DateTimeFormat.forPattern("dd-MM-yy");
-        var ls : List[Article] = List()
+        var ls: List[Article] = List()
         for {
           dat <- date
           ad <- {
@@ -153,9 +151,9 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
           }
           ac <- ArticleCategory.where(_.name eqs category.get).fetch().headOption
         } yield {
-          ls= Article.where(_.date_id eqs ad.id.is)
+          ls = Article.where(_.date_id eqs ad.id.is)
             .and(_.category_id eqs ac.id.is).fetch()
-        } 
+        }
         ls
       }
     }

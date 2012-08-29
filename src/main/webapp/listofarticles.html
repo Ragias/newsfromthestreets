@@ -64,7 +64,7 @@
 
 					var check = false;
 					for ( i = 0; i < markerArr.length; i++) {
-						console.log(markerArr[i].title + " " + location.title + " " + markerArr.length)
+						//console.log(markerArr[i].title + " " + location.title + " " + markerArr.length)
 						if (markerArr[i].title == location.title) {
 							check = true;
 
@@ -76,7 +76,8 @@
 							var marker = new google.maps.Marker({
 								position : point,
 								map : map,
-								title : location.title
+								title : location.title,
+								icon : 'images/beachflag.png'
 							});
 							markerArr[i].setMap(null)
 							markerArr[i] = marker;
@@ -90,7 +91,8 @@
 						var marker = new google.maps.Marker({
 							position : point,
 							map : map,
-							title : location.title
+							title : location.title,
+							icon : 'images/beachflag.png'
 						});
 						markerArr.push(marker);
 					}
