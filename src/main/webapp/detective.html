@@ -1,4 +1,5 @@
 <div id="main" class="lift:surround?with=default&at=content">
+	
 	<h2>Detective</h2>
 	<span id="detectiveMap"></span>
 	<span id="labelMode"> </span>
@@ -36,7 +37,7 @@
 							"lat" : position.coords.latitude,
 							"lng" : position.coords.longitude
 						})
-					}); 
+					});
 					var checkJson = (function() {
 						$.getJSON("/api/newsfromthestreets/detectives/true", function(json) {
 

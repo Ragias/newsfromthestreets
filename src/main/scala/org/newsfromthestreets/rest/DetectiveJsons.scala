@@ -16,7 +16,7 @@ object DetectiveJsons extends RestHelper with Loggable {
               
               if (d.mode.is) {
                 if (json.values.isInstanceOf[Map[String, Double]]) {
-                  Detective.getLocationByJson(d, json.values.asInstanceOf[Map[String, Double]])
+                  d.setLocationByJson( json.values.asInstanceOf[Map[String, Double]])
                   logger.info("The Detective " + u.username.is + " Jsons json is : " + json.values.toString())
                 } else {
                   logger.error("The Detective " + u.username.is + " Jsons  has problems with json : " + json.values.toString())

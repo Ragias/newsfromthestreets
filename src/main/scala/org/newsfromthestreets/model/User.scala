@@ -69,6 +69,8 @@ class User private () extends ProtoAuthUser[User] with ObjectIdPk[User] {
   }
 
   def whenCreated: DateTime = new DateTime(id.is.getTime)
+  
+  def getDetective: Box[Detective] = Detective.findByUser(this)
 }
 
 object User extends User with ProtoAuthUserMeta[User] with Loggable {
