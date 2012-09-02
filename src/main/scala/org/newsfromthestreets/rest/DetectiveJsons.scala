@@ -13,38 +13,53 @@ object DetectiveJsons extends RestHelper with Loggable {
         u =>
           Detective.findByUser(u).map {
             d =>
-              
+
               if (d.mode.is) {
+                
                 if (json.values.isInstanceOf[Map[String, Double]]) {
-                  d.setLocationByJson( json.values.asInstanceOf[Map[String, Double]])
+                  d.setLocationByJson(json.values.asInstanceOf[Map[String, Map[String,Double]]])
                   logger.info("The Detective " + u.username.is + " Jsons json is : " + json.values.toString())
                 } else {
                   logger.error("The Detective " + u.username.is + " Jsons  has problems with json : " + json.values.toString())
                 }
-              } 
+              }
           }
       }
       OkResponse()
     }
-    
-    case "api" :: "newsfromthestreets" :: "detectives" :: mode :: _ JsonGet _ => {
-      var m = false
-      if(mode == "true"){
-        m = true
-      }
-      JArray(Detective.findByMode(m).map{
-        
+
+    case "api" :: "newsfromthestreets" :: "detectives" :: _ JsonGet _ => {
+      JArray(Detective.findByMode(true).map {
+
         d => d.asJValue
       })
-    } 
-    
-    case "api" :: "newsfromthestreets" :: "specificdective" :: user_id :: _ JsonGet _ => {
-      (for{ u <- User.find(user_id)
-           d <- Detective.findByUser(u)} 
-          yield{
-             d.asJValue
-          })
-      
     }
+
+    case "api" :: "newsfromthestreets" :: "searchgroup" :: searchgroup_id :: _ JsonGet _ => {
+      var ls: JArray = JArray(List())
+      if (searchgroup_id != "None") {
+        for {
+          user <- User.currentUser
+          detective <- user.getDetective
+          group <- SearchGroup.find(searchgroup_id)
+        } yield {
+          ls = JArray(DetectiveInGroup.findBySearchGroupAndMode(group, true).filter {
+            dig =>
+              !dig.detective_id.obj.isEmpty && dig.request.is == true && dig.blocked.is == false
+          }.map {
+            dig =>
+              dig.detective_id.obj.get.asJValue
+          })
+
+        }
+      } else {
+        ls = JArray(Detective.findByMode(true).map {
+
+          d => d.asJValue
+        })
+      }
+      ls
+    }
+
   }
 }

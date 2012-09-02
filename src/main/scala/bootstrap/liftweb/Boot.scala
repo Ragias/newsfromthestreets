@@ -11,6 +11,13 @@ import _root_.net.liftweb.sitemap.Loc._
 import org.newsfromthestreets.lib._
 import net.liftmodules.mongoauth.MongoAuth
 import org.newsfromthestreets.rest._
+
+object Preperation {
+  def prepareDetectives{
+    DetectiveInGroup.findAll.foreach(_.changeMode(false))
+    Detective.findAll.foreach(_.setMode(false))
+  }
+}
 class Boot {
   def boot {
 
@@ -22,7 +29,9 @@ class Boot {
     MongoAuth.systemUsername.default.set(SystemUser.user.name.is)
     // where to search snippet
     LiftRules.addToPackages("org.newsfromthestreets")
-
+    
+    Preperation.prepareDetectives
+    
     // build sitemap
     LiftRules.setSiteMap(Site.siteMap)
 
@@ -39,7 +48,7 @@ class Boot {
 
     // What is the function to test if a user is logged in?
     LiftRules.loggedInTest = Full(() => User.isLoggedIn)
-
+    
     //Show the spinny image when an Ajax call starts
     LiftRules.ajaxStart =
       Full(() => LiftRules.jsArtifacts.show("ajax-loader").cmd)

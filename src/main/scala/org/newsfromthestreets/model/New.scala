@@ -4,7 +4,7 @@ import net.liftweb.mongodb.record._
 import net.liftweb.mongodb.record.field._
 import net.liftweb.common._
 import com.foursquare.rogue.Rogue._
-import org.bson.types.ObjectId
+import com.foursquare.rogue.IndexedRecord
 import net.liftweb.mongodb.BsonDSL._
 import java.util.Date
 import java.text.SimpleDateFormat
@@ -13,11 +13,15 @@ import org.joda.time.LocalDate
 import java.util.Locale
 import org.joda.time.format.DateTimeFormat
 import net.liftweb.json.JsonAST.JValue
+import com.foursquare.rogue.{LatLong,Degrees,IndexModifier}
 
 class ArticleDate extends MongoRecord[ArticleDate] with ObjectIdPk[ArticleDate] {
   def meta = ArticleDate
   object date extends DateTimeField(this)
-
+  def delete(){
+    Article.where(_.date_id eqs this.id.is).fetch().foreach(_.delete())
+    this.delete_!
+  }
 }
 
 
@@ -29,16 +33,26 @@ object ArticleDate extends ArticleDate with MongoMetaRecord[ArticleDate] with Lo
   }
   def findOrAdd(): Box[ArticleDate] = {
     val today = (new LocalDate).toDateTimeAtStartOfDay()
-    ArticleDate.where(_.date between (today, today.plusDays(1))).fetch().headOption match {
+    ArticleDate.where(_.date between (today, today.plusHours(24))).fetch().headOption match {
       case Some(ad) => Full(ad)
       case None => ArticleDate.add()
     }
+  }
+  
+  def findByDateString(dateStr:String)={
+     val formatter = new SimpleDateFormat("dd-MM-yy")
+     val d = new DateTime(formatter.parse(dateStr))
+     ArticleDate.where(_.date between (d,d.plusDays(1))).fetch().headOption
   }
 }
 
 class ArticleCategory extends MongoRecord[ArticleCategory] with ObjectIdPk[ArticleCategory] {
   def meta = ArticleCategory
   object name extends StringField(this, 20)
+   def delete(){
+    Article.where(_.category_id eqs this.id.is).fetch().foreach(_.delete())
+    this.delete_!
+  }
 }
 
 object ArticleCategory extends ArticleCategory with MongoMetaRecord[ArticleCategory] with Loggable {
@@ -51,9 +65,15 @@ object ArticleCategory extends ArticleCategory with MongoMetaRecord[ArticleCateg
       case None => ArticleCategory.add(name)
     }
   }
+  
+  def findByName(name:String)={
+    ArticleCategory.where(_.name eqs name).fetch().headOption
+  }
+  
+  
 }
 
-class Article extends MongoRecord[Article] with ObjectIdPk[Article] {
+class Article extends MongoRecord[Article]  with MongoId[Article] with IndexedRecord[Article] {
   def meta = Article
 
   object title extends StringField(this, 60)
@@ -61,12 +81,29 @@ class Article extends MongoRecord[Article] with ObjectIdPk[Article] {
   object article extends TextareaField(this, 500)
   object date_id extends ObjectIdRefField(this, ArticleDate)
   object category_id extends ObjectIdRefField(this, ArticleCategory)
-  object lat extends DoubleField(this)
-  object lng extends DoubleField(this)
+  object geolatlng extends MongoCaseClassField[Article, LatLong](this) { override def name = "latlng" }
+  
+  def delete(){
+    CommentArticle.where(_.article_id eqs this.id).fetch().foreach(_.delete_!)
+    this.delete_!
+  }
+  
+  def edit( user: User, title: String, article: String, category: String, lat: Double, lng: Double) {
+
+    ArticleCategory.findOrAdd(category).map {
+      cat =>
+        ArticleDate.findOrAdd.map {
+          date =>
+            this.title(title).article(article).category_id(cat.id.is).date_id(date.id.is).geolatlng(LatLong(lat,lng)).update
+        }
+
+    }
+  }
 
 }
 
 object Article extends Article with MongoMetaRecord[Article] with Loggable {
+  val geoIdx = Article.index(_.geolatlng, TwoD)
   def add(user: User, title: String, article: String, category: String, lat: Double, lng: Double): Box[Article] = {
     val a = Article.createRecord
     a.user_id(user.id.is)
@@ -82,31 +119,13 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
       case Some(ac) => a.category_id(ac.id.is)
       case None => ArticleCategory.add(category).map(ac => a.category_id(ac.id.is)).getOrElse(logger.error("The ArticleCategory does not add a new date "))
     }
-    a.lat(lat)
-    a.lng(lng)
+    a.geolatlng(LatLong(lat,lng))
     a.saveTheRecord()
   }
 
-  def edit(id: String, user: User, title: String, article: String, category: String, lat: Double, lng: Double) {
-
-    ArticleCategory.findOrAdd(category).map {
-      cat =>
-        ArticleDate.findOrAdd.map {
-          date =>
-            Article.update(("_id" -> id), (("user_id" -> user.id.is)
-              ~ ("category_id" -> cat.id.is)
-              ~ ("article" -> article)
-              ~ ("title" -> title)
-              ~ ("date_id" -> date.id.is)
-              ~ ("lat" -> lat)
-              ~ ("lng" -> lng)))
-        }
-
-    }
-  }
+ 
 
   def listByDate(date: String): List[Article] = {
-    if (date != "All") {
       try {
         val formatter = new SimpleDateFormat("dd-MM-yy")
         val d = new DateTime(formatter.parse(date))
@@ -119,9 +138,7 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
           List()
           
       }
-    } else {
-      Article.findAll
-    }
+    
   }
 
   def listByCategory(category: String): List[Article] = {
@@ -130,38 +147,85 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
     }
   }
 
-  def listByCategoryAndDate(category: Box[String], date: Box[String]): List[Article] = {
-    if (category.isEmpty) {
-      if (date.isEmpty) {
-        Article.findAll
-      } else {
-        Article.listByDate(date.get)
-      }
-    } else {
-      if (date.isEmpty) {
-        Article.listByCategory(category.get)
-      } else {
-        var fmt = DateTimeFormat.forPattern("dd-MM-yy");
-        var ls: List[Article] = List()
-        for {
-          dat <- date
-          ad <- {
-            val d = fmt.parseDateTime(dat)
-            ArticleDate.where(_.date between (d, d.plusDays(1))).fetch().headOption
-          }
-          ac <- ArticleCategory.where(_.name eqs category.get).fetch().headOption
-        } yield {
-          ls = Article.where(_.date_id eqs ad.id.is)
-            .and(_.category_id eqs ac.id.is).fetch()
-        }
-        ls
-      }
-    }
+  def findByCategory(category:ArticleCategory)={
+    Article.where(_.category_id eqs category.id.is).fetch()
   }
+  
+  def findByCategoryLocation(category:ArticleCategory , lat:Double,long:Double)={
+    Article.where(_.category_id eqs category.id.is).and(_.geolatlng withinCircle (lat,long,Degrees(0.2))).fetch()
+  }
+  
+  def findByCategoryDateLocation(category:ArticleCategory, date:ArticleDate , lat:Double,long:Double)={
+    Article.where(_.category_id eqs category.id.is)
+    .and(_.date_id eqs date.id.is)
+    .and(_.geolatlng withinCircle (lat,long,Degrees(0.2)))
+    .fetch()
+  }
+  
+  def findByDate(date:ArticleDate)={
+    Article.where(_.date_id eqs date.id.is).fetch()
+  }
+  def findByDateLocation(date:ArticleDate , lat:Double,long:Double)={
+    Article.where(_.date_id eqs date.id.is).and(_.geolatlng withinCircle (lat,long,Degrees(0.2)))
+    .fetch()
+  }
+  
+  def findByCategoryDate(category:ArticleCategory,date:ArticleDate )={
+    Article.where(_.category_id eqs category.id.is)
+    .and(_.date_id eqs date.id.is).fetch()
+  }
+  
+  def findByLocation(lat:Double,long:Double)={
+    Article.where(_.geolatlng withinCircle (lat,long,Degrees(0.2)))
+    .fetch()
+  }
+  
+  
+  def listByCategoryDateLocation(articleDate: Box[ArticleDate],articleCategory: Box[ArticleCategory]
+  ,lat:Box[Double],lng:Box[Double]):List[Article]={
+     var articleList: List[Article] = List()
+      if (articleDate.isEmpty) {
+        if (articleCategory.isEmpty) {
+          if (lat.isEmpty || lng.isEmpty) {
+            articleList = Article.findAll
+          } else {
+            articleList = Article.findByLocation(lat.get, lng.get)
+          }
+        } else {
+          if (lat.isEmpty || lng.isEmpty) {
+            articleList = Article.findByCategory(articleCategory.get)
+          } else {
+            articleList = Article.findByCategoryLocation(articleCategory.get, lat.get, lng.get)
+          }
+        }
+      } else {
+        if (articleCategory.isEmpty) {
+          if (lat.isEmpty || lng.isEmpty) {
+            articleList = Article.findByDate(articleDate.get)
+          } else {
+            articleList = Article.findByDateLocation(articleDate.get, lat.get, lng.get)
+          }
+        } else {
+          if (lat.isEmpty || lng.isEmpty) {
+            articleList = Article.findByCategoryDate(articleCategory.get, articleDate.get)
+          } else {
+            articleList = Article.findByCategoryDateLocation(articleCategory.get, articleDate.get, lat.get, lng.get)
+          }
+        }
+      }
+     articleList
+  }
+  
+ 
 
   def createFromJson(user: User, json: JValue) = {
     Article.createRecord.user_id(user.id.is).setFieldsFromJValue(json)
   }
+  
+  def findNearestArticle(lat:Double,lng:Double,degree:Double)={
+    Article.where(_.geolatlng near (lat,lng,Degrees(degree))).fetch()
+  }
+  
 
 }
 
@@ -178,13 +242,13 @@ object CommentArticle extends CommentArticle with MongoMetaRecord[CommentArticle
   def add(user: User, article: Article, message: String) = {
     CommentArticle.createRecord
       .user_id(user.id.is)
-      .article_id(article.id.is)
+      .article_id(article.id)
       .message(message)
       .saveTheRecord()
   }
 
   def showByNumberOfResults(art: Article, num: Int): List[CommentArticle] = {
-    CommentArticle.where(_.article_id eqs art.id.is).orderDesc(_.id).fetch(num).reverse
+    CommentArticle.where(_.article_id eqs art.id).orderDesc(_.id).fetch(num).reverse
   }
 
 }

@@ -94,6 +94,10 @@ object User extends User with ProtoAuthUserMeta[User] with Loggable {
     x => logger.debug("User.onLogOut called."),
     boxedUser => boxedUser.foreach { u =>
       ExtSession.deleteExtCookie()
+      u.getDetective.foreach{
+        d => 
+          d.setMode(false)
+          DetectiveInGroup.findByDetective(d).foreach(_.changeMode(false))}
     })
 
   /*

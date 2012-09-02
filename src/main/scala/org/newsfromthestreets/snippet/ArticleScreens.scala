@@ -28,10 +28,10 @@ class ShowArticle {
                   <span class="article"> { article.article.is }</span><br/>
                   <span class="username"> { user.name.is } </span><br/>
                   <span class="date"> {
-                    article.id.is.getTime().date.toString()
+                    article.id.getTime().date.toString()
                   } </span><br/>
-                  <span class="lat"> { article.lat.is.toString() }</span><br/>
-                  <span class="lng"> { article.lng.is.toString() } </span><br/>
+                  <span class="lat"> { article.geolatlng.get.lat.toString() }</span><br/>
+                  <span class="lng"> { article.geolatlng.get.long.toString() } </span><br/>
                 </div>
         User.currentUser.map{
           u => 
@@ -80,7 +80,8 @@ class AddArticle extends StatefulSnippet {
       lat <- asDouble(latStr)
       lng <- asDouble(lngStr)
     } yield {
-      Article.edit(article_id, user, title, article, category, lat, lng)
+      
+      Article.find(article_id).map(_.edit(user, title, article, category, lat, lng))
       S.notice("The article is edited")
     }
   }
@@ -109,8 +110,8 @@ class AddArticle extends StatefulSnippet {
                     title = a.title.is
                     article = a.article.is
                     category = a.category_id.obj.map(_.name.is).getOrElse("")
-                    latStr = a.lat.is.toString()
-                    lngStr = a.lng.is.toString()
+                    latStr = a.geolatlng.get.lat.toString()
+                    lngStr = a.geolatlng.get.long.toString()
                     out = ("name=title" #> SHtml.text(title, title = _, "id" -> "the_title") &
                       "name=category" #> SHtml.text(category, category = _, "id" -> "the_category") &
                       "name=article" #> SHtml.textarea(article, article = _, "id" -> "the_article") &
@@ -129,18 +130,19 @@ class AddArticle extends StatefulSnippet {
 }
 
 class ListOfArticles extends StatefulSnippet {
-  private var date: Box[String] = Empty
-  private var category: Box[String] = Empty
+  private var date: Box[ArticleDate] = Empty
+  private var category: Box[ArticleCategory] = Empty
   def dispatch = {
     case "render" => render
 
   }
 
   def showList(): JsCmd = {
+    
     SetHtml("listOfArticles", <ul id="listOfArticles">
                                 {
 
-                                  Article.listByCategoryAndDate(category, date).map {
+                                  Article.listByCategoryDateLocation(date,category,Empty,Empty).map {
                                     a =>
                                       <li>
                                         {
@@ -152,7 +154,7 @@ class ListOfArticles extends StatefulSnippet {
                                               case _ => ""
                                             }
                                           }</span><br/>
-                                          <span> { a.id.is.getTime().date.toString() }</span><br/>
+                                          <span> { a.id.getTime().date.toString() }</span><br/>
                                           <span> { a.article.is }</span><br/>
                                           <span> { a.user_id.obj.get.name.is }</span><br/>
                                           <a href={ "/article?q=show&id=" + a.id.toString() }> more </a>
@@ -185,7 +187,7 @@ class ListOfArticles extends StatefulSnippet {
             date = Empty
           } else {
 
-            date = Full(s)
+            date = ArticleDate.findByDateString(s)
           }
 
         }) &
@@ -195,7 +197,7 @@ class ListOfArticles extends StatefulSnippet {
             if (s.equals("All")) {
               category = Empty
             } else {
-              category = Full(s)
+              category = ArticleCategory.findByName(s)
             }
 
           }) &
@@ -258,7 +260,9 @@ class CommentArticleSnippet extends StatefulSnippet {
             }) &
               "#send" #> SHtml.ajaxButton(Text("Send"), () => {
                 CommentArticle.add(user, article, message)
-                showMessages()
+                showMessages()&
+                SetValById("message", "")
+
               }))(in)
           }
         }

@@ -1,20 +1,27 @@
 package org.newsfromthestreets.rest
 import net.liftweb.http._
 import rest._
+import net.liftweb.util.Helpers._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import org.newsfromthestreets.model._
 import net.liftweb.common._
 
-object ArticleJsons extends RestHelper {
+object ArticleJsons extends RestHelper with Loggable {
   serve {
-    case "api" :: "newsfromthestreets" :: "articles" :: category :: date :: _ JsonGet _ => {
-      val ad: Box[String] = if (date == "All") Empty else Full(date)
-      val ac: Box[String] = if (category == "All") Empty else Full(category)
+    case "api" :: "newsfromthestreets" :: "articles" :: category :: date :: _ JsonGet req => {
+      val articleDate: Box[ArticleDate] = if (date.toLowerCase() == "all") Empty else ArticleDate.findByDateString(date)
+      val articleCategory: Box[ArticleCategory] = if (category.toLowerCase() == "all") Empty else ArticleCategory.findByName(category)
+      val lat = asDouble(req.param("lat").getOrElse(""))
+      val lng = asDouble(req.param("lng").getOrElse(""))
 
-      JArray(Article.listByCategoryAndDate(ac, ad).map {
-        a => ("title" -> a.title.is) ~ ("lat" -> a.lat.is) ~ ("lng" -> a.lng.is)
+      
+
+      JArray(Article.listByCategoryDateLocation(articleDate,articleCategory,lat,lng).map {
+        a => a.asJValue
       })
+
+      
 
     }
 
@@ -27,15 +34,15 @@ object ArticleJsons extends RestHelper {
       ForbiddenResponse("No access for you")
 
     }
-    
-    case "api" :: "example":: _ JsonGet _ => {
-      var resp:JObject =  ("user" -> "none") 
+
+    case "api" :: "example" :: _ JsonGet _ => {
+      var resp: JObject = ("user" -> "none")
       User.currentUser.map {
         u =>
-         resp = ("user" -> u.name.is)
+          resp = ("user" -> u.name.is)
       }
       resp
     }
-  
+
   }
 }
