@@ -94,6 +94,7 @@ object Detective extends Detective with MongoMetaRecord[Detective] with Loggable
 
 }
 
+
 class SearchGroup extends MongoRecord[SearchGroup] with ObjectIdPk[SearchGroup] with Loggable {
   def meta = SearchGroup
   object name extends StringField(this, 160)

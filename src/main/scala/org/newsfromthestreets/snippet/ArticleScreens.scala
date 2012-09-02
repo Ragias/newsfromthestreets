@@ -24,34 +24,30 @@ class ShowArticle {
     } yield {
       if (q == "show") {
         out = <div class="showArticle">
-                  <span class="title"> { article.title.is }</span><br/>
-                  <span class="article"> { article.article.is }</span><br/>
-                  <span class="username"> { user.name.is } </span><br/>
-                  <span class="date"> {
-                    article.id.getTime().date.toString()
-                  } </span><br/>
-                  <span class="lat"> { article.geolatlng.get.lat.toString() }</span><br/>
-                  <span class="lng"> { article.geolatlng.get.long.toString() } </span><br/>
-                </div>
-        User.currentUser.map{
-          u => 
-           out =  <a id="addArticle" href="/article?q=add"> Add Article</a> ++ out
-         }          
-       
+                <span class="title"> { article.title.is }</span><br/>
+                <span class="article"> { article.article.is }</span><br/>
+                <span class="username"> { user.name.is } </span><br/>
+                <span class="date"> {
+                  article.id.getTime().date.toString()
+                } </span><br/>
+                <span class="lat"> { article.geolatlng.get.lat.toString() }</span><br/>
+                <span class="lng"> { article.geolatlng.get.long.toString() } </span><br/>
+              </div>
+        User.currentUser.map {
+          u =>
+            out = <a id="addArticle" href="/article?q=add"> Add Article</a> ++ out
+        }
+
       }
-         
-       
-         
 
     }
-    if(S.param("q").isEmpty){
-      User.currentUser.map{
-          u => 
-           out =  <a id="addArticle" href="/article?q=add"> Add Article</a> ++ out
-         }
+    if (S.param("q").isEmpty) {
+      User.currentUser.map {
+        u =>
+          out = <a id="addArticle" href="/article?q=add"> Add Article</a> ++ out
+      }
     }
-  
-      
+
     out
   }
 }
@@ -80,7 +76,7 @@ class AddArticle extends StatefulSnippet {
       lat <- asDouble(latStr)
       lng <- asDouble(lngStr)
     } yield {
-      
+
       Article.find(article_id).map(_.edit(user, title, article, category, lat, lng))
       S.notice("The article is edited")
     }
@@ -138,11 +134,11 @@ class ListOfArticles extends StatefulSnippet {
   }
 
   def showList(): JsCmd = {
-    
+
     SetHtml("listOfArticles", <ul id="listOfArticles">
                                 {
 
-                                  Article.listByCategoryDateLocation(date,category,Empty,Empty).map {
+                                  Article.listByCategoryDateLocation(date, category, Empty, Empty).map {
                                     a =>
                                       <li>
                                         {
@@ -159,7 +155,7 @@ class ListOfArticles extends StatefulSnippet {
                                           <span> { a.user_id.obj.get.name.is }</span><br/>
                                           <a href={ "/article?q=show&id=" + a.id.toString() }> more </a>
                                           <span>{
-                                            var editXml:NodeSeq = <span></span>
+                                            var editXml: NodeSeq = <span></span>
                                             User.currentId.map {
                                               uid =>
                                                 if (uid.toStringMongod() == a.user_id.is.toStringMongod()) {
@@ -189,7 +185,7 @@ class ListOfArticles extends StatefulSnippet {
 
             date = ArticleDate.findByDateString(s)
           }
-
+          showList()
         }) &
           "name=category" #> SHtml.ajaxSelect(ArticleCategory.findAll.map {
             ac => (ac.name.is, ac.name.is)
@@ -199,9 +195,8 @@ class ListOfArticles extends StatefulSnippet {
             } else {
               category = ArticleCategory.findByName(s)
             }
-
-          }) &
-          "name=submit" #> SHtml.ajaxButton(Text("Press me"), () => showList()))(in)
+            showList()
+          }))(in)
     }</div>
   }
 }
@@ -260,8 +255,8 @@ class CommentArticleSnippet extends StatefulSnippet {
             }) &
               "#send" #> SHtml.ajaxButton(Text("Send"), () => {
                 CommentArticle.add(user, article, message)
-                showMessages()&
-                SetValById("message", "")
+                showMessages() &
+                  SetValById("message", "")
 
               }))(in)
           }

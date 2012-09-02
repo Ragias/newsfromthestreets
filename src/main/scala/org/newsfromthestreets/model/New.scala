@@ -123,42 +123,18 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
     a.saveTheRecord()
   }
 
- 
-
-  def listByDate(date: String): List[Article] = {
-      try {
-        val formatter = new SimpleDateFormat("dd-MM-yy")
-        val d = new DateTime(formatter.parse(date))
-        ArticleDate.where(_.date after d).fetch().map {
-          ad => Article.where(_.date_id eqs ad.id.is).fetch().head
-        }
-      } catch {
-        case e =>
-          logger.error(e.getMessage())
-          List()
-          
-      }
-    
-  }
-
-  def listByCategory(category: String): List[Article] = {
-    ArticleCategory.where(_.name eqs category).fetch().map {
-      ac => Article.where(_.category_id eqs ac.id.is).fetch().head
-    }
-  }
-
   def findByCategory(category:ArticleCategory)={
     Article.where(_.category_id eqs category.id.is).fetch()
   }
   
   def findByCategoryLocation(category:ArticleCategory , lat:Double,long:Double)={
-    Article.where(_.category_id eqs category.id.is).and(_.geolatlng withinCircle (lat,long,Degrees(0.2))).fetch()
+    Article.where(_.category_id eqs category.id.is).and(_.geolatlng near (lat,long,Degrees(0.3))).fetch()
   }
   
   def findByCategoryDateLocation(category:ArticleCategory, date:ArticleDate , lat:Double,long:Double)={
     Article.where(_.category_id eqs category.id.is)
     .and(_.date_id eqs date.id.is)
-    .and(_.geolatlng withinCircle (lat,long,Degrees(0.2)))
+    .and(_.geolatlng near (lat,long,Degrees(0.3)))
     .fetch()
   }
   
@@ -166,7 +142,7 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
     Article.where(_.date_id eqs date.id.is).fetch()
   }
   def findByDateLocation(date:ArticleDate , lat:Double,long:Double)={
-    Article.where(_.date_id eqs date.id.is).and(_.geolatlng withinCircle (lat,long,Degrees(0.2)))
+    Article.where(_.date_id eqs date.id.is).and(_.geolatlng near (lat,long,Degrees(0.3)))
     .fetch()
   }
   
@@ -176,7 +152,7 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
   }
   
   def findByLocation(lat:Double,long:Double)={
-    Article.where(_.geolatlng withinCircle (lat,long,Degrees(0.2)))
+    Article.where(_.geolatlng near (lat,long,Degrees(0.3)))
     .fetch()
   }
   

@@ -10,7 +10,20 @@
 				zoom : 8,
 				mapTypeId : google.maps.MapTypeId.ROADMAP
 			};
+
 			var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+			var placeLat = 'All';
+			var placeLng = 'All';
+			var input = document.getElementById('searchTextField');
+			var autocomplete = new google.maps.places.Autocomplete(input);
+
+			autocomplete.bindTo('bounds', map);
+
+			var infowindow = new google.maps.InfoWindow();
+			var marker1 = new google.maps.Marker({
+				map : map
+			});
+
 			$(document).ready(function() {
 				var oldDateStr = "";
 				var oldCategoryStr = "";
@@ -29,6 +42,33 @@
 
 				(function() {
 					if (isChanged()) {
+						google.maps.event.addListener(autocomplete, 'place_changed', function() {
+							infowindow.close();
+							var place = autocomplete.getPlace();
+							if (place.geometry.viewport) {
+								map.fitBounds(place.geometry.viewport);
+								map.setZoom(8);
+							} else {
+								map.setCenter(place.geometry.location);
+								map.setZoom(8);
+								// Why 17? Because it looks good.
+							}
+
+							placeLat = place.geometry.location.lat();
+							placeLng = place.geometry.location.lng();
+							var address = '';
+							if (place.address_components) {
+								address = [(place.address_components[0] && place.address_components[0].short_name || ''), (place.address_components[1] && place.address_components[1].short_name || ''), (place.address_components[2] && place.address_components[2].short_name || '')].join(' ');
+							}
+
+							//infowindow.setContent('<div><strong>' + place.name + '</strong><br>' + address);
+							infowindow.open(map, marker1);
+							if (!markerArr.isEmpty) {
+								while (markerArr[0]) {
+									markerArr.pop().setMap(null);
+								}
+							}
+						});
 						console.log(oldDateStr + " == " + dateStr + " " + oldCategoryStr + " == " + categoryStr)
 
 						if (!markerArr.isEmpty) {
@@ -48,13 +88,13 @@
 					if (categoryStr == "") {
 						categoryStr = "All";
 					}
-					$.getJSON("/api/newsfromthestreets/articles/" + categoryStr + "/" + dateStr+"?lat=All&lng=All", function(json) {
+					console.log("/api/newsfromthestreets/articles/" + categoryStr + "/" + dateStr + "?lat=" + placeLat + "&lng=" + placeLng);
+					$.getJSON("/api/newsfromthestreets/articles/" + categoryStr + "/" + dateStr + "?lat=" + placeLat + "&lng=" + placeLng, function(json) {
 
 						if (json.length > 0) {
 							for ( i = 0; i < json.length; i++) {
-								var location = json[i].latlng;
-								
-								addMarker(location);
+
+								addMarker(json[i]);
 							}
 						}
 					});
@@ -69,10 +109,10 @@
 						if (markerArr[i].title == location.title) {
 							check = true;
 
-							if (location.lat == markerArr[i].position.lat() && location.long == markerArr[i].position.lng()) {
+							if (location.latlng.lat == markerArr[i].position.lat() && location.latlng.long == markerArr[i].position.lng()) {
 								break;
 							}
-							var point = new google.maps.LatLng(location.lat, location.long);
+							var point = new google.maps.LatLng(location.latlng.lat, location.latlng.long);
 
 							var marker = new google.maps.Marker({
 								position : point,
@@ -87,7 +127,7 @@
 					}
 					if (!check) {
 						console.log(location.title)
-						var point = new google.maps.LatLng(location.lat, location.lng);
+						var point = new google.maps.LatLng(location.latlng.lat, location.latlng.lng);
 
 						var marker = new google.maps.Marker({
 							position : point,
@@ -117,8 +157,7 @@
 			<input id="searchTextField" type="text" size="50">
 			</input>
 			<br/>
-			<input name="submit" type="submit" value="Submit">
-			</input>
+
 		</div>
 	</div>
 	<div>

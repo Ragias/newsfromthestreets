@@ -32,6 +32,7 @@
 
 					document.getElementById('currentLat').innerHTML = position.coords.latitude;
 					document.getElementById('currentLon').innerHTML = position.coords.longitude;
+					
 					$.ajax({
 						url : "/api/newsfromthestreets/detective",
 						type : "PUT",
