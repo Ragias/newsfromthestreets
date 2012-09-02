@@ -84,6 +84,7 @@ class AddArticle extends StatefulSnippet {
 
   def dispatch = { case "render" => render }
   def render(in: NodeSeq): NodeSeq = {
+    val categoryList = ArticleCategory.findAll.map(ac => (ac.name.is,ac.name.is))
     val param = S.param("q")
     var out: NodeSeq = <span></span>
 
@@ -91,7 +92,7 @@ class AddArticle extends StatefulSnippet {
       user =>
         if (param.getOrElse("") == "add") {
           out = ("name=title" #> SHtml.text(title, title = _, "id" -> "the_title") &
-            "name=category" #> SHtml.text(category, category = _, "id" -> "the_category") &
+            "name=category" #> SHtml.select(categoryList,Empty, category=_ , "id" -> "the_category") &
             "name=article" #> SHtml.textarea(article, article = _, "id" -> "the_article") &
             "name=lat" #> SHtml.text(latStr, latStr = _, "id" -> "the_lat") &
             "name=lng" #> SHtml.text(lngStr, lngStr = _, "id" -> "the_lng") &
@@ -109,7 +110,7 @@ class AddArticle extends StatefulSnippet {
                     latStr = a.geolatlng.get.lat.toString()
                     lngStr = a.geolatlng.get.long.toString()
                     out = ("name=title" #> SHtml.text(title, title = _, "id" -> "the_title") &
-                      "name=category" #> SHtml.text(category, category = _, "id" -> "the_category") &
+                      "name=category" #> SHtml.select(categoryList,Full(category), category=_ , "id" -> "the_category") &
                       "name=article" #> SHtml.textarea(article, article = _, "id" -> "the_article") &
                       "name=lat" #> SHtml.text(latStr, latStr = _, "id" -> "the_lat") &
                       "name=lng" #> SHtml.text(lngStr, lngStr = _, "id" -> "the_lng") &

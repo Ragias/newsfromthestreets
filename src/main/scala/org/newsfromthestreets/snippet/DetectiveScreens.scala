@@ -69,7 +69,64 @@ class DetectiveModeSnippet {
   }
 }
 
-class SelectSearchGroup {
+class SelectSearchGroup extends StatefulSnippet {
+  var id = ""
+  var message = ""
+  def listMessages(): NodeSeq = {
+    var xhtml: NodeSeq = <span></span>
+
+    for {
+      sg <- SearchGroup.find(id)
+    } yield {
+      xhtml = <ul id="listOfMessages">
+                {
+                  sg.showMessagesByNumberOfResults(10).map {
+                    message =>
+                      <li>
+                        {
+                          <span> { message.getUsername() } </span>
+                          <span> { message.message.is } </span>
+                        }
+                      </li>
+                  }
+                }
+              </ul>
+
+    }
+
+    xhtml
+  }
+ def dispatch = {
+    case "render" => render
+  }
+  def showMessages(): JsCmd = {
+    SetHtml("listOfMessages", listMessages)
+  }
+
+  def sendMessages: JsCmd = {
+    var out:NodeSeq = <span></span>
+    for {
+      user <- User.currentUser
+      detective <- user.getDetective
+      sg <- SearchGroup.find(id)
+      dig <- DetectiveInGroup.findByDetectiveAndGroup(detective, sg)
+    } yield {
+      println("REEEEEEEEEEEE!")
+      if (dig.request.is == true) {
+        out =  SHtml.ajaxText("", s => {
+            message = s
+          }) ++ SHtml.ajaxButton(Text("Send"), () => {
+            SearchGroupMessage.add(sg, detective, message)
+            showMessages() &
+              SetValById("message", "")
+          })
+      }
+    }
+
+    SetHtml("sendMessages",  out)
+
+  }
+
   def render(in: NodeSeq): NodeSeq = {
     var out: NodeSeq = <span></span>
     for {
@@ -84,18 +141,21 @@ class SelectSearchGroup {
 
         out = ("name=searchGroup" #> SHtml.ajaxSelect(ls, Full("None"), s => {
           if (s == "None") {
-        	  DetectiveInGroup.findByDetective(detective).foreach(_.changeMode(false))
+            DetectiveInGroup.findByDetective(detective).foreach(_.changeMode(false))
           } else {
             SearchGroup.find(s).map {
               sg =>
                 DetectiveInGroup.findByDetectiveAndGroup(detective, sg).map {
                   dig => dig.changeModeToTrue
+                  id = dig.searchgroup_id.toString()
                 }
             }
-            
+
           }
-          Noop
-        }))(in)    
+          
+          showMessages &
+          sendMessages
+        }))(in)
       }
     }
     out

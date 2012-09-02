@@ -17,6 +17,13 @@ object Preperation {
     DetectiveInGroup.findAll.foreach(_.changeMode(false))
     Detective.findAll.foreach(_.setMode(false))
   }
+  def addCategories{
+    val categories = List("Crimes","Politics","Sport", "Business","Arts","Science" , "Technology" , "Health","Fashion","Opinion")
+    categories.foreach{
+      c => ArticleCategory.findOrAdd(c)
+    }
+    
+  }
 }
 class Boot {
   def boot {
@@ -31,6 +38,7 @@ class Boot {
     LiftRules.addToPackages("org.newsfromthestreets")
     
     Preperation.prepareDetectives
+    Preperation.addCategories
     
     // build sitemap
     LiftRules.setSiteMap(Site.siteMap)
