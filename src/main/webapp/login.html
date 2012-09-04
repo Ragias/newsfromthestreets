@@ -1,53 +1,8 @@
-<div lift="surround?with=default;at=content">
-  <div lift="Notices"></div>
-  <div class="group2">
+<section id="main" class="lift:TemplateSelector.select">
+			<div class="lift:Mobile.render">
+				<div id="desktop" class="lift:embed?what=desktoptemps/login"></div>
+				<div id="mobile" class="lift:embed?what=mobiletemps/login"></div>
 
-      <form lift="Form.ajax?class=form-horizontal">
-        <span lift="UserLogin">
-          <fieldset>
-            <div class="control-group">
-              <label class="control-label" for="email"></label>
-              <div class="controls">
-                <p><strong>Enter your email address:</strong></p>
-                <input class="xlarge" maxlength="254" id="id_email" size="32" name="email" type="text" value="" />
-                <span lift="Notices.id?id=id_email_err"></span>
-              </div>
-            </div>
-            <div class="control-group">
-              <div class="controls">
-                <p><strong>Do you have a password?</strong></p>
-              </div>
-            </div>
-            
-            <div class="control-group">
-              <div class="controls">
-                <input class="xlarge" id="id_password" />
-                <span lift="Notices.id?id=id_password_err"></span>
-              </div>
-            </div>
-            <div class="control-group">
-              <label class="control-label" for="remember"></label>
-              <div class="controls">
-                <label class="checkbox">
-                  <input class="xlarge" name="remember" />
-                  Remember me when I come back later.
-                </label>
-              </div>
-            </div>
-          </fieldset>
-          <div class="form-actions">
-            <input id="id_submit" />
-            <input type="submit" class="btn btn-primary" value="Submit"></input>
-            <span lift="Menu.item?name=Home;a:class=btn">Cancel</span>
-          </div>
-        </span>
-      </form>
-
-    </div>
-
-  <script type="text/javascript">
-  \$(document).ready(function() {
-    app.login.startMonitor();
-  });
-  </script>
-</div>
+			</div>
+			
+		</section>

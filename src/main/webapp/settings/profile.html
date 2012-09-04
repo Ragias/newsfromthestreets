@@ -1,5 +1,8 @@
-<lift:surround with="default" at="content">
+<section id="main" class="lift:TemplateSelector.select">
+			<div class="lift:Mobile.render">
+				<div id="desktop" class="lift:embed?what=desktoptemps/profile"></div>
+				<div id="mobile" class="lift:embed?what=mobiletemps/profile"></div>
 
-  <div lift="ProfileScreen?ajax=true"></div>
-
-</lift:surround>
+			</div>
+			
+			</section>

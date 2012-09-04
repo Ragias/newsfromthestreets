@@ -1,5 +1,17 @@
-<lift:surround with="default" at="content">
-  <h2>Welcome to your project!</h2>
-  
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Home</title>
+	</head>
+	<body class="lift:content_id=main">
+		<!-- <section id="main" class="lift:surround?with=default;at=main"> -->
+		<section id="main" class="lift:TemplateSelector.select">
+			<div class="lift:Mobile.render">
+				<div id="desktop" class="lift:embed?what=desktoptemps/index"></div>
+				<div id="mobile" class="lift:embed?what=mobiletemps/index"></div>
 
-</lift:surround>
+			</div>
+			
+		</section>
+	</body>
+</html>

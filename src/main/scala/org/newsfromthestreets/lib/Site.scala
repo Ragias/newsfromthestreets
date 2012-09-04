@@ -31,17 +31,19 @@ object Site extends Locs {
  
                                    
   lazy val profileLoc = profileParamMenu.toLoc
-  val password = MenuLoc(Menu.i("Password") / "settings" / "password" >> RequireLoggedIn >> SettingsGroup)
-  val account = MenuLoc(Menu.i("Account") / "settings" / "account" >> SettingsGroup >> RequireLoggedIn)
-  val editProfile = MenuLoc(Menu("EditProfile", "Profile") / "settings" / "profile" >> SettingsGroup >> RequireLoggedIn)
-
+  val password = MenuLoc(Menu.i("Password") / "settings" / "password" >> RequireLoggedIn >> SettingsGroup >>Hidden)
+  val account = MenuLoc(Menu.i("Account") / "settings" / "account" >> SettingsGroup >> RequireLoggedIn>>Hidden)
+  val editProfile = MenuLoc(Menu("EditProfile", "Profile") / "settings" / "profile" >> SettingsGroup >> RequireLoggedIn>>Hidden)
+  val settings = MenuLoc(Menu("Settings") / "settings" >> RequireLoggedIn >>Hidden)
+  
   val login = MenuLoc(Menu("Login") / "login" >> RequireNotLoggedIn >> SigningGroup)
   val register = MenuLoc(Menu("Register") / "register" >> RequireNotLoggedIn >> SigningGroup)
   
-  val article = MenuLoc(Menu("Article")/"article")
-  val listOfArticles = MenuLoc(Menu("List Of Articles")/"listofarticles")
+  val article = MenuLoc(Menu("Article")/"article" >> Hidden )
+  val addArticle = MenuLoc(Menu("Add Article")/"addArticle" >> RequireLoggedIn >>Hidden)
+  val listOfArticles = MenuLoc(Menu("List of my Articles")/"listofarticles" >> RequireLoggedIn)
   
-
+  
   
   val detective = MenuLoc(Menu("Detective")/"detective">> RequireLoggedIn)
   val searchgroup = MenuLoc(Menu("Search Group")/"searchgroup">> RequireLoggedIn)
@@ -50,17 +52,20 @@ object Site extends Locs {
   private def menu = List(home.menu,
     login.menu,
     register.menu,
-    loginToken.menu,
+    //loginToken.menu,
     logout.menu,
     profileParamMenu,
     password.menu,
     account.menu,
+    settings.menu,
     editProfile.menu,
     article.menu ,
-    listOfArticles.menu,
-    detective.menu,
-    searchgroup.menu,
-    listOfSearchGroups.menu)
+    addArticle.menu,
+    listOfArticles.menu
+    //detective.menu,
+    //searchgroup.menu,
+    //listOfSearchGroups.menu
+    )
 
   def siteMap = SiteMap(menu: _*)
 }

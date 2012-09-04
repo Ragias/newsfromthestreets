@@ -28,7 +28,7 @@ class ShowArticle {
                 <span class="article"> { article.article.is }</span><br/>
                 <span class="username"> { user.name.is } </span><br/>
                 <span class="date"> {
-                  article.id.getTime().date.toString()
+                  article.id.is.getTime().date.toString()
                 } </span><br/>
                 <span class="lat"> { article.geolatlng.get.lat.toString() }</span><br/>
                 <span class="lng"> { article.geolatlng.get.long.toString() } </span><br/>
@@ -139,7 +139,7 @@ class ListOfArticles extends StatefulSnippet {
     SetHtml("listOfArticles", <ul id="listOfArticles">
                                 {
 
-                                  Article.listByCategoryDateLocation(date, category, Empty, Empty).map {
+                                  Article.listByCategoryDateLocation(date, category, Empty, Empty,0.3).map {
                                     a =>
                                       <li>
                                         {
@@ -151,16 +151,16 @@ class ListOfArticles extends StatefulSnippet {
                                               case _ => ""
                                             }
                                           }</span><br/>
-                                          <span> { a.id.getTime().date.toString() }</span><br/>
+                                          <span> { a.id.is.getTime().date.toString() }</span><br/>
                                           <span> { a.article.is }</span><br/>
                                           <span> { a.user_id.obj.get.name.is }</span><br/>
-                                          <a href={ "/article?q=show&id=" + a.id.toString() }> more </a>
+                                          <a href={ "/article?q=show&id=" + a.id.is.toString() }> more </a>
                                           <span>{
                                             var editXml: NodeSeq = <span></span>
                                             User.currentId.map {
                                               uid =>
                                                 if (uid.toStringMongod() == a.user_id.is.toStringMongod()) {
-                                                  editXml = <a href={ "/article?q=edit&id=" + a.id.toString() }> edit </a>
+                                                  editXml = <a href={ "/article?q=edit&id=" + a.id.is.toString() }> edit </a>
                                                 }
                                             }
                                             editXml

@@ -1,5 +1,8 @@
-<lift:surround with="default" at="content">
-   <div class="group2">
-  <div lift="AccountScreen?ajax=true"></div>
-</div>
-</lift:surround>
+<section id="main" class="lift:TemplateSelector.select">
+			<div class="lift:Mobile.render">
+				<div id="desktop" class="lift:embed?what=desktoptemps/account"></div>
+				<div id="mobile" class="lift:embed?what=mobiletemps/account"></div>
+
+			</div>
+			
+		</section>

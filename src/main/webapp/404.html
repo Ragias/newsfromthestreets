@@ -1,3 +1,8 @@
-<lift:surround with="default" at="content">
-  <h2>404: Unable to find the requested resource</h2>
-</lift:surround>
+<section id="main" class="lift:TemplateSelector.select">
+			<div class="lift:Mobile.render">
+				<div id="desktop" class="lift:embed?what=desktoptemps/404"></div>
+				<div id="mobile" class="lift:embed?what=mobiletemps/404"></div>
+
+			</div>
+			
+		</section>

@@ -144,7 +144,9 @@ object ProfileLocUser extends UserSnippet {
   def profile(html: NodeSeq): NodeSeq = serve(html) { user =>
     val editLink: NodeSeq =
       if (User.currentUser.filter(_.id.is == user.id.is).isDefined)
-        <a href={Site.editProfile.url} class="btn btn-info"><i class="icon-edit icon-white"></i> Edit Your Profile</a>
+        SHtml.ajaxButton(Text("Settings"),()=>{
+          S.redirectTo("/settings")
+        })
       else
         NodeSeq.Empty
 

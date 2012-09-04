@@ -14,34 +14,35 @@ object ArticleJsons extends RestHelper with Loggable {
       val articleCategory: Box[ArticleCategory] = if (category.toLowerCase() == "all") Empty else ArticleCategory.findByName(category)
       val lat = asDouble(req.param("lat").getOrElse(""))
       val lng = asDouble(req.param("lng").getOrElse(""))
-
-      
-
-      JArray(Article.listByCategoryDateLocation(articleDate,articleCategory,lat,lng).map {
-        a => a.asJValue
-      })
-
-      
-
-    }
-
-    case "api" :: "newsfromthestreets" :: "article" :: _ JsonPost json -> _ => {
-      User.currentUser.map {
-        u =>
-          Article.createFromJson(u, json)
-          OkResponse()
-      }
-      ForbiddenResponse("No access for you")
+      val limit = asInt(req.param("limit").getOrElse("")).getOrElse(5)
+      JArray(
+        Article.listByCategoryDateLocation(articleDate, articleCategory, lat, lng, 0.5).takeRight(limit).map {
+          a =>
+            ("id" -> a.id.is.toString()) ~
+              ("title" -> a.title.is) ~
+              ("category" -> a.getCategoryName()) ~
+              ("date" -> a.getExactDateInString()) ~
+              ("username" -> a.getUsername()) ~
+              ("icon" -> a.getIcon()) ~
+              ("latlng" -> ("lat" -> a.geolatlng.get.lat) ~ ("long" -> a.geolatlng.get.long))
+        })
 
     }
-
-    case "api" :: "example" :: _ JsonGet _ => {
-      var resp: JObject = ("user" -> "none")
-      User.currentUser.map {
-        u =>
-          resp = ("user" -> u.name.is)
+    case "api" :: "newsfromthestreets" :: "article" :: id :: _ JsonGet req => {
+      for {
+        // find the item, and if it’s not found,
+        // return a nice message for the 404
+        a <- Article.find(id) ?~ "Article Not Found"
+      } yield {
+        ("id" -> a.id.is.toString()) ~
+          ("title" -> a.title.is) ~
+          ("category" -> a.getCategoryName()) ~
+          ("date" -> a.getExactDateInString()) ~
+          ("username" -> a.getUsername()) ~
+          ("icon" -> a.getIcon()) ~
+          ("latlng" -> ("lat" -> a.geolatlng.get.lat) ~ ("long" -> a.geolatlng.get.long))
       }
-      resp
+
     }
 
   }

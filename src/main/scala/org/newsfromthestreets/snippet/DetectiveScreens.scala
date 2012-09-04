@@ -115,7 +115,7 @@ class SelectSearchGroup extends StatefulSnippet {
       if (dig.request.is == true) {
         out =  SHtml.ajaxText("", s => {
             message = s
-          }) ++ SHtml.ajaxButton(Text("Send"), () => {
+          },"id" -> "message") ++ SHtml.ajaxButton(Text("Send"), () => {
             SearchGroupMessage.add(sg, detective, message)
             showMessages() &
               SetValById("message", "")

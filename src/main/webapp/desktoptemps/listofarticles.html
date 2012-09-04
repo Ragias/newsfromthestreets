@@ -1,0 +1,167 @@
+<div>
+
+	<h2>List of Articles</h2>
+	<div id="map_canvas" style="width: 500px; height: 300px"></div>
+
+	<script type="text/javascript">
+		function initialize() {
+			var mapOptions = {
+				center : new google.maps.LatLng(-34.397, 150.644),
+				zoom : 8,
+				mapTypeId : google.maps.MapTypeId.ROADMAP
+			};
+
+			var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+			var placeLat = 'All';
+			var placeLng = 'All';
+			var input = document.getElementById('searchTextField');
+			var autocomplete = new google.maps.places.Autocomplete(input);
+
+			autocomplete.bindTo('bounds', map);
+
+			var infowindow = new google.maps.InfoWindow();
+			var marker1 = new google.maps.Marker({
+				map : map
+			});
+
+			$(document).ready(function() {
+				var oldDateStr = "";
+				var oldCategoryStr = "";
+				var markerArr = new Array();
+
+				var dateStr = "";
+				var categoryStr = "";
+
+				function isChanged() {
+					if (oldDateStr == dateStr && oldCategoryStr == categoryStr) {
+						return false;
+					} else {
+						return true;
+					}
+				}
+
+				(function() {
+					if (isChanged()) {
+						google.maps.event.addListener(autocomplete, 'place_changed', function() {
+							infowindow.close();
+							var place = autocomplete.getPlace();
+							if (place.geometry.viewport) {
+								map.fitBounds(place.geometry.viewport);
+								map.setZoom(8);
+							} else {
+								map.setCenter(place.geometry.location);
+								map.setZoom(8);
+								// Why 17? Because it looks good.
+							}
+
+							placeLat = place.geometry.location.lat();
+							placeLng = place.geometry.location.lng();
+							var address = '';
+							if (place.address_components) {
+								address = [(place.address_components[0] && place.address_components[0].short_name || ''), (place.address_components[1] && place.address_components[1].short_name || ''), (place.address_components[2] && place.address_components[2].short_name || '')].join(' ');
+							}
+
+							//infowindow.setContent('<div><strong>' + place.name + '</strong><br>' + address);
+							infowindow.open(map, marker1);
+							if (!markerArr.isEmpty) {
+								while (markerArr[0]) {
+									markerArr.pop().setMap(null);
+								}
+							}
+						});
+						console.log(oldDateStr + " == " + dateStr + " " + oldCategoryStr + " == " + categoryStr)
+
+						if (!markerArr.isEmpty) {
+							while (markerArr[0]) {
+								markerArr.pop().setMap(null);
+							}
+						}
+						oldDateStr = dateStr
+						oldCategoryStr = categoryStr
+					}
+
+					dateStr = $("#the_date option:selected").text();
+					categoryStr = $("#the_category option:selected").text();
+					if (dateStr == "") {
+						dateStr = "All";
+					}
+					if (categoryStr == "") {
+						categoryStr = "All";
+					}
+					console.log("/api/newsfromthestreets/articles/" + categoryStr + "/" + dateStr + "?lat=" + placeLat + "&lng=" + placeLng);
+					$.getJSON("/api/newsfromthestreets/articles/" + categoryStr + "/" + dateStr + "?lat=" + placeLat + "&lng=" + placeLng, function(json) {
+
+						if (json.length > 0) {
+							for ( i = 0; i < json.length; i++) {
+
+								addMarker(json[i]);
+							}
+						}
+					});
+					setTimeout(arguments.callee, 1000);
+				})();
+
+				function addMarker(location) {
+
+					var check = false;
+					for ( i = 0; i < markerArr.length; i++) {
+						//console.log(markerArr[i].title + " " + location.title + " " + markerArr.length)
+						if (markerArr[i].title == location.title) {
+							check = true;
+
+							if (location.latlng.lat == markerArr[i].position.lat() && location.latlng.long == markerArr[i].position.lng()) {
+								break;
+							}
+							var point = new google.maps.LatLng(location.latlng.lat, location.latlng.long);
+
+							var marker = new google.maps.Marker({
+								position : point,
+								map : map,
+								title : location.title,
+								icon : 'images/beachflag.png'
+							});
+							markerArr[i].setMap(null)
+							markerArr[i] = marker;
+							break;
+						}
+					}
+					if (!check) {
+						console.log(location.title)
+						var point = new google.maps.LatLng(location.latlng.lat, location.latlng.lng);
+
+						var marker = new google.maps.Marker({
+							position : point,
+							map : map,
+							title : location.title,
+							icon : 'images/beachflag.png'
+						});
+						markerArr.push(marker);
+					}
+
+				};
+			});
+
+		}
+
+	</script>
+
+	<div>
+		<div class="lift:ListOfArticles">
+			Category:
+			<select name="category" id="the_category"></select>
+			<br/>
+			Date:
+			<select name="date" id="the_date"></select>
+			<br/>
+			Place:
+			<input id="searchTextField" type="text" size="50">
+			</input>
+			<br/>
+
+		</div>
+	</div>
+	<div>
+		<span>List Of Articles</span><ul id="listOfArticles"></ul>
+	</div>
+
+</div>

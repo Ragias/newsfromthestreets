@@ -1,7 +1,8 @@
-<div lift="surround?with=default;at=content">
- <div class="group0">
-  <h3> Register </h3>
-  <div lift="Notices"></div>
-  <div lift="RegisterScreen"></div>
-</div>
-</div>
+<section id="main" class="lift:TemplateSelector.select">
+			<div class="lift:Mobile.render">
+				<div id="desktop" class="lift:embed?what=desktoptemps/register"></div>
+				<div id="mobile" class="lift:embed?what=mobiletemps/register"></div>
+
+			</div>
+			
+		</section>

@@ -13,16 +13,16 @@ import net.liftmodules.mongoauth.MongoAuth
 import org.newsfromthestreets.rest._
 
 object Preperation {
-  def prepareDetectives{
+  def prepareDetectives {
     DetectiveInGroup.findAll.foreach(_.changeMode(false))
     Detective.findAll.foreach(_.setMode(false))
   }
-  def addCategories{
-    val categories = List("Crimes","Politics","Sport", "Business","Arts","Science" , "Technology" , "Health","Fashion","Opinion")
-    categories.foreach{
+  def addCategories {
+    val categories = List("Crimes", "Politics", "Sport", "Business", "Arts", "Science", "Technology", "Health", "Fashion", "Opinion")
+    categories.foreach {
       c => ArticleCategory.findOrAdd(c)
     }
-    
+
   }
 }
 class Boot {
@@ -37,9 +37,11 @@ class Boot {
     // where to search snippet
     LiftRules.addToPackages("org.newsfromthestreets")
     
+    
+    
     Preperation.prepareDetectives
     Preperation.addCategories
-    
+
     // build sitemap
     LiftRules.setSiteMap(Site.siteMap)
 
@@ -56,14 +58,14 @@ class Boot {
 
     // What is the function to test if a user is logged in?
     LiftRules.loggedInTest = Full(() => User.isLoggedIn)
-    
+
     //Show the spinny image when an Ajax call starts
-    LiftRules.ajaxStart =
-      Full(() => LiftRules.jsArtifacts.show("ajax-loader").cmd)
+    //LiftRules.ajaxStart =
+    //  Full(() => LiftRules.jsArtifacts.show("ajax-loader").cmd)
 
     // Make the spinny image go away when it ends
-    LiftRules.ajaxEnd =
-      Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)
+    //LiftRules.ajaxEnd =
+    //  Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)
     // set the default htmlProperties
     LiftRules.htmlProperties.default.set((r: Req) => new Html5Properties(r.userAgent))
   }
