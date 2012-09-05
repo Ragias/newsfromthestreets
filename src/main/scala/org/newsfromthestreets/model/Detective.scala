@@ -130,6 +130,12 @@ class SearchGroup extends MongoRecord[SearchGroup] with ObjectIdPk[SearchGroup] 
   def showMessagesByNumberOfResults(num: Int): List[SearchGroupMessage] = {
     SearchGroupMessage.where(_.searchgroup_id eqs this.id.is).orderDesc(_.id).fetch(num).reverse
   }
+  
+  def getActiveUsernames():List[String]={
+    DetectiveInGroup.where(_.searchgroup_id eqs this.id.is).fetch().filter(_.mode.is == true).map{
+      dig => dig.getDetectiveUserName()
+    }
+  }
 }
 
 object SearchGroup extends SearchGroup with MongoMetaRecord[SearchGroup] with Loggable {
@@ -157,6 +163,13 @@ object SearchGroup extends SearchGroup with MongoMetaRecord[SearchGroup] with Lo
 
   def findByAdmin(detective: Detective): List[SearchGroup] = {
     SearchGroup.where(_.admin_id eqs detective.id.is).fetch()
+  }
+  
+  def findActiveGroups():List[SearchGroup]={
+    SearchGroup.findAll.filter{
+      sg => 
+        sg.getActiveUsernames().size > 0
+    }
   }
 
 }

@@ -1,20 +1,8 @@
-<div >
-
-	<h2>Article</h2>
+<div>
 	<div id="map_canvas" style="width: 500px; height: 300px"></div>
-	<div>
-		<div class="lift:ShowArticle">
-			<span class="title"></span>
-			<span class="article"></span>
-			<span class="username"></span>
-			<span class="date"></span>
-			<span class="lat"></span>
-			<span class="lng"></span>
 
-		</div>
-	</div>
 	<div>
-		<div class="lift:AddArticle?form=post">
+		<div class="lift:AddNew?form=post">
 			Title:
 			<input name="title" id="the_title">
 			</input>
@@ -39,19 +27,6 @@
 			</input>
 		</div>
 	</div>
-	
-	
-   <div class="lift:CommentArticleSnippet.listMessages"> </div>	
-   <div>
-		<div class="lift:CommentArticleSnippet">
-			<span id="message"> </span>
-			<span id="send"></span>
-
-		</div>
-	</div>
-	
-
-
 	<script type="text/javascript">
 		function initialize() {
 			var latStr = "";
@@ -92,11 +67,14 @@
 			} else {
 				var marker;
 
-				var mapOptions = {
-					center : new google.maps.LatLng(-34.397, 150.644),
-					zoom : 8,
-					mapTypeId : google.maps.MapTypeId.ROADMAP
-				};
+				var greece = {'lat' : 38.01861070670554,
+			'lng' : 23.625567382812505 }
+			
+			var mapOptions = {
+				center : new google.maps.LatLng(greece.lat, greece.lng),
+				zoom : 5,
+				mapTypeId : google.maps.MapTypeId.ROADMAP
+			};
 
 				var map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
 				function placeMarker(location) {
@@ -106,7 +84,6 @@
 						marker = new google.maps.Marker({
 							position : location,
 							map : map
-							
 
 						});
 					}

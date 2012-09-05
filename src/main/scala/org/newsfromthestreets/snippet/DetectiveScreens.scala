@@ -96,7 +96,7 @@ class SelectSearchGroup extends StatefulSnippet {
 
     xhtml
   }
- def dispatch = {
+  def dispatch = {
     case "render" => render
   }
   def showMessages(): JsCmd = {
@@ -104,7 +104,7 @@ class SelectSearchGroup extends StatefulSnippet {
   }
 
   def sendMessages: JsCmd = {
-    var out:NodeSeq = <span></span>
+    var out: NodeSeq = <span></span>
     for {
       user <- User.currentUser
       detective <- user.getDetective
@@ -113,17 +113,17 @@ class SelectSearchGroup extends StatefulSnippet {
     } yield {
       println("REEEEEEEEEEEE!")
       if (dig.request.is == true) {
-        out =  SHtml.ajaxText("", s => {
-            message = s
-          },"id" -> "message") ++ SHtml.ajaxButton(Text("Send"), () => {
-            SearchGroupMessage.add(sg, detective, message)
-            showMessages() &
-              SetValById("message", "")
-          })
+        out = SHtml.ajaxText("", s => {
+          message = s
+        }, "id" -> "message") ++ SHtml.ajaxButton(Text("Send"), () => {
+          SearchGroupMessage.add(sg, detective, message)
+          showMessages() &
+            SetValById("message", "")
+        })
       }
     }
 
-    SetHtml("sendMessages",  out)
+    SetHtml("sendMessages", out)
 
   }
 
@@ -146,15 +146,16 @@ class SelectSearchGroup extends StatefulSnippet {
             SearchGroup.find(s).map {
               sg =>
                 DetectiveInGroup.findByDetectiveAndGroup(detective, sg).map {
-                  dig => dig.changeModeToTrue
-                  id = dig.searchgroup_id.toString()
+                  dig =>
+                    dig.changeModeToTrue
+                    id = dig.searchgroup_id.toString()
                 }
             }
 
           }
-          
+
           showMessages &
-          sendMessages
+            sendMessages
         }))(in)
       }
     }
@@ -200,46 +201,49 @@ class ShowSearchGroup {
         id =>
           SearchGroup.find(id).map {
             group =>
-              out = <div id="showGroup">{
-                <span id="groupName"> { group.name.is }</span>
-                <br/>
-                <span id="groupDescription">{ group.description.is } </span>
-                <span id="numberOfDetectives">{ group.num.is } </span>
-                <span id="admin">{
-                  group.getAdminUsername()
-                } </span> ++ {
-                  for {
-                    user <- User.currentUser
-                    d <- user.getDetective
-                  } yield {
-                    DetectiveInGroup.findByDetectiveAndGroup(d, group).map {
-                      ding =>
-                        <span id="request"> {
-                          if (ding.request.is == true && ding.blocked.is == false) {
-                            SHtml.ajaxButton(Text("Get out!"), () => {
-                              ding.delete()
-                              Reload
-                            })
-                          } else if (ding.request.is == false && ding.blocked.is == false) {
+              out = <div id="showGroup">
+                      <div id="map_canvas" style="width: 300px; height: 300px"></div>
+                      {
+                        <span id="groupName"> { group.name.is }</span>
+                        <br/>
+                        <span id="groupDescription">{ group.description.is } </span>
+                        <span id="numberOfDetectives">{ group.num.is } </span>
+                        <span id="admin">{
+                          group.getAdminUsername()
+                        } </span> ++ {
+                          for {
+                            user <- User.currentUser
+                            d <- user.getDetective
+                          } yield {
+                            DetectiveInGroup.findByDetectiveAndGroup(d, group).map {
+                              ding =>
+                                <span id="request"> {
+                                  if (ding.request.is == true && ding.blocked.is == false) {
+                                    SHtml.ajaxButton(Text("Get out!"), () => {
+                                      ding.delete()
+                                      Reload
+                                    })
+                                  } else if (ding.request.is == false && ding.blocked.is == false) {
 
-                            SHtml.ajaxButton(Text("Your request is proceeding do you want to cancel ?"), () => {
-                              ding.delete()
-                              Reload
-                            })
-                          } else {
-                            <span>You have been blocked</span>
+                                    SHtml.ajaxButton(Text("Your request is proceeding do you want to cancel ?"), () => {
+                                      ding.delete()
+                                      Reload
+                                    })
+                                  } else {
+                                    <span>You have been blocked</span>
+                                  }
+                                }</span>
+
+                            }.getOrElse {
+                              SHtml.ajaxButton(Text("Add me"), () => {
+                                DetectiveInGroup.add(d, group, false)
+                                Reload
+                              })
+                            }
                           }
-                        }</span>
-
-                    }.getOrElse {
-                      SHtml.ajaxButton(Text("Add me"), () => {
-                        DetectiveInGroup.add(d, group, false)
-                        Reload
-                      })
-                    }
-                  }
-                }
-              }</div>
+                        }
+                      }
+                    </div>
           }
       }
     }
@@ -248,7 +252,7 @@ class ShowSearchGroup {
 }
 class ListOfSearchGroupYouAreAdmin {
   def render(in: NodeSeq): NodeSeq = {
-    var out: NodeSeq = <span></span>
+    var out: NodeSeq = NodeSeq.Empty
     for {
       u <- User.currentUser
       d <- u.getDetective
@@ -257,19 +261,21 @@ class ListOfSearchGroupYouAreAdmin {
               {
                 SearchGroup.findByAdmin(d).map {
                   group =>
-                    <a id="groupName" href={ "/searchgroup?q=show&id=" + group.id.is.toString() }>{
-                      group.name.is
-                    } </a> ++ <br/> ++
-                      <span id="groupDescription">{ group.description.is } </span> ++
-                      <span id="numberOfDetectives">{ group.num.is } </span> ++
-                      SHtml.ajaxButton(Text("Edit"), () => {
-                        S.redirectTo("/searchgroup?q=edit&id=" + group.id.is.toString())
-                        Reload
-                      }) ++
-                      SHtml.ajaxButton(Text("Delete"), () => {
-                        group.delete()
-                        Reload
-                      })
+                    <li>{
+                      <a id="groupName" href={ "/searchgroup?q=show&id=" + group.id.is.toString() }>{
+                        group.name.is
+                      } </a> ++ <br/> ++
+                        <span id="groupDescription">{ group.description.is } </span> ++
+                        <span id="numberOfDetectives">{ group.num.is } </span> ++
+                        SHtml.ajaxButton(Text("Edit"), () => {
+                          S.redirectTo("/searchgroup?q=edit&id=" + group.id.is.toString())
+                          Reload
+                        }) ++
+                        SHtml.ajaxButton(Text("Delete"), () => {
+                          group.delete()
+                          Reload
+                        })
+                    }</li>
                 }
               }
             </ul>
@@ -281,7 +287,7 @@ class ListOfSearchGroupYouAreAdmin {
 class ListOfSearchGroupYouAreNotIn {
 
   def render(in: NodeSeq): NodeSeq = {
-    var out: NodeSeq = <span></span>
+    var out: NodeSeq = NodeSeq.Empty
     for {
       u <- User.currentUser
       d <- u.getDetective
@@ -315,7 +321,7 @@ class ListOfSearchGroupYouAreNotIn {
 
 class ListOfDetectiveInGroup extends Loggable {
   def render(in: NodeSeq): NodeSeq = {
-    var out = <span></span>
+    var out = NodeSeq.Empty
     User.currentUser.map {
       user =>
         user.getDetective.map {
@@ -427,7 +433,7 @@ class AdminSearchGroup extends StatefulSnippet with Loggable {
   def dispatch = { case "render" => render }
 
   def render(in: NodeSeq): NodeSeq = {
-    var out: NodeSeq = <span></span>
+    var out: NodeSeq = NodeSeq.Empty
     if (q == "edit") {
       for {
         user <- User.currentUser
@@ -467,7 +473,7 @@ class SearchGroupMessenger extends StatefulSnippet {
   }
 
   def listMessages: NodeSeq = {
-    var xhtml: NodeSeq = <span></span>
+    var xhtml: NodeSeq = NodeSeq.Empty
     if (q == "show") {
       for {
         sg <- SearchGroup.find(id)
@@ -521,5 +527,20 @@ class SearchGroupMessenger extends StatefulSnippet {
       { Script(OnLoad(showMessages)) ++ out }
     </div>
   }
+}
+
+class ShowActiveGroups {
+  def render = <ul id="listOfActiveGroups">
+                 {
+		  			SearchGroup.findActiveGroups().map{
+		  			  sg =>  <li>{
+		  			     <a id="name" href={ "/searchgroup?q=show&id=" + sg.id.is.toString() }>{ sg.name.is } </a> ++
+                            <br/> ++
+                            <span id="admin">{ sg.getAdminUsername() } </span> ++
+                            <span id="num"> { sg.num.is } </span>
+		  			  }</li>
+		  			}
+                 }
+               </ul>
 }
 

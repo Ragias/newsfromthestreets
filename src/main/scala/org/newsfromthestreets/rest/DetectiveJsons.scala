@@ -39,8 +39,6 @@ object DetectiveJsons extends RestHelper with Loggable {
       var ls: JArray = JArray(List())
       if (searchgroup_id != "None") {
         for {
-          user <- User.currentUser
-          detective <- user.getDetective
           group <- SearchGroup.find(searchgroup_id)
         } yield {
           ls = JArray(DetectiveInGroup.findBySearchGroupAndMode(group, true).filter {

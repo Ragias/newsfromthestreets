@@ -15,8 +15,10 @@
 
 	<script type="text/javascript">
 		function initialize() {
+			 var greece = {'lat' : 38.01861070670554,
+			'lng' : 23.625567382812505 }
 			var mapOptions = {
-				center : new google.maps.LatLng(-34.397, 150.644),
+				center : new google.maps.LatLng(greece.lat, greece.lng),
 				zoom : 8,
 				mapTypeId : google.maps.MapTypeId.ROADMAP
 			};
@@ -100,13 +102,13 @@
 					}
 					console.log("/api/newsfromthestreets/articles/" + categoryStr + "/" + dateStr + "?lat=" + placeLat + "&lng=" + placeLng);
 					$.getJSON("/api/newsfromthestreets/articles/" + categoryStr + "/" + dateStr + "?lat=" + placeLat + "&lng=" + placeLng, function(json) {
+							createNewList(json);
 
 						if (json.length > 0) {
 							for ( i = 0; i < json.length; i++) {
 
 								addMarker(json[i]);
 							}
-							createNewList(json)
 						}
 					});
 					setTimeout(arguments.callee, 1000);

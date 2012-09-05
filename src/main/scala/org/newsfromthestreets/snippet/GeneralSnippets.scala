@@ -20,8 +20,9 @@ object Mobile  {
     req =>
       req.userAgent.map {
         ua =>
-          true //ua.toLowerCase().contains("iphone") ||
-           // ua.toLowerCase().contains("android")
+          //true 
+          ua.toLowerCase().contains("iphone") ||
+           ua.toLowerCase().contains("android")
       }.getOrElse(false)
   }.getOrElse(false) 
 

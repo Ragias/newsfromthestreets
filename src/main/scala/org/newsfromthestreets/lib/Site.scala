@@ -7,6 +7,7 @@ import sitemap._
 import sitemap.Loc._
 import net.liftmodules.mongoauth.Locs
 import org.newsfromthestreets.model._
+import net.liftweb.http.RedirectResponse
 
 case class MenuLoc(menu: Menu) {
   lazy val url: String = S.contextPath + menu.loc.calcDefaultHref
@@ -17,6 +18,18 @@ object MenuGroups {
   val SettingsGroup = LocGroup("settings")
   val TopBarGroup = LocGroup("topbar")
   val SigningGroup = LocGroup("signing")
+}
+
+object Checkers {
+   def isMobile: Boolean = S.request.map {
+    req =>
+      req.userAgent.map {
+        ua =>
+          //true 
+          ua.toLowerCase().contains("iphone") ||
+           ua.toLowerCase().contains("android")
+      }.getOrElse(false)
+  }.getOrElse(false) 
 }
 object Site extends Locs {
   import MenuGroups._
@@ -45,8 +58,10 @@ object Site extends Locs {
   
   
   
-  val detective = MenuLoc(Menu("Detective")/"detective">> RequireLoggedIn)
-  val searchgroup = MenuLoc(Menu("Search Group")/"searchgroup">> RequireLoggedIn)
+  val detective = MenuLoc(Menu("Detective")/"detective">> RequireLoggedIn >> Unless (()=> !Checkers.isMobile,
+      () => RedirectResponse("index")))
+
+  val searchgroup = MenuLoc(Menu("Search Group")/"searchgroup">> RequireLoggedIn >>Hidden)
   val listOfSearchGroups = MenuLoc(Menu("List of Search Groups")/"listofsearchgroups">> RequireLoggedIn)
   
   private def menu = List(home.menu,
@@ -61,10 +76,10 @@ object Site extends Locs {
     editProfile.menu,
     article.menu ,
     addArticle.menu,
-    listOfArticles.menu
-    //detective.menu,
-    //searchgroup.menu,
-    //listOfSearchGroups.menu
+    listOfArticles.menu,
+    detective.menu,
+    searchgroup.menu,
+    listOfSearchGroups.menu
     )
 
   def siteMap = SiteMap(menu: _*)
