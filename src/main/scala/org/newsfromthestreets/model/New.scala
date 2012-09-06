@@ -56,6 +56,7 @@ class ArticleCategory extends MongoRecord[ArticleCategory] with ObjectIdPk[Artic
 }
 
 object ArticleCategory extends ArticleCategory with MongoMetaRecord[ArticleCategory] with Loggable {
+  ensureIndex(("name" -> "1"))
   def add(name: String) = {
     ArticleCategory.createRecord.name(name).icon("images/" + name.toLowerCase() + ".png").saveTheRecord()
   }
@@ -126,6 +127,9 @@ class Article extends MongoRecord[Article] with ObjectIdPk[Article] with Loggabl
 
 object Article extends Article with MongoMetaRecord[Article] with Loggable {
   ensureIndex(("latlng" -> "2d"))
+  ensureIndex(("user_id" -> "1"))
+  ensureIndex(("category_id" -> "1"))
+  ensureIndex(("date_id" -> "1"))
   def add(user: User, title: String, article: String, category: String, lat: Double, lng: Double): Box[Article] = {
     val a = Article.createRecord
     a.user_id(user.id.is)
@@ -144,7 +148,7 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
     a.geolatlng(LatLong(lat, lng))
     a.saveTheRecord()
   }
-  def findByUser(user:User)={
+  def findByUser(user: User) = {
     Article.where(_.user_id eqs user.id.is).orderDesc(_.id).fetch()
   }
 
@@ -232,17 +236,23 @@ object Article extends Article with MongoMetaRecord[Article] with Loggable {
 
 }
 
-class CommentArticle extends MongoRecord[CommentArticle] with ObjectIdPk[CommentArticle] {
+class CommentArticle extends MongoRecord[CommentArticle] with ObjectIdPk[CommentArticle] with Loggable {
   def meta = CommentArticle
 
   object article_id extends ObjectIdRefField(this, Article)
   object user_id extends ObjectIdRefField(this, User)
   object message extends TextareaField(this, 500)
-
+  def getUsername(): String = {
+    this.user_id.obj match {
+      case Full(o) => o.username.is
+      case _ => logger.error("Article id=" + this.id.is.toString() + " does not have a proper user_id"); ""
+    }
+  }
 }
 
-
 object CommentArticle extends CommentArticle with MongoMetaRecord[CommentArticle] {
+  ensureIndex(("article_id" -> "1"))
+  ensureIndex(("user_id" -> "1"))
   def add(user: User, article: Article, message: String) = {
     CommentArticle.createRecord
       .user_id(user.id.is)
@@ -251,8 +261,12 @@ object CommentArticle extends CommentArticle with MongoMetaRecord[CommentArticle
       .saveTheRecord()
   }
 
-  def showByNumberOfResults(art: Article, num: Int): List[CommentArticle] = {
+  def showByArticleAndLimit(art: Article, num: Int): List[CommentArticle] = {
     CommentArticle.where(_.article_id eqs art.id.is).orderDesc(_.id).fetch(num).reverse
+  }
+  
+  def showByArticle(art:Article)={
+    CommentArticle.where(_.article_id eqs art.id.is).orderDesc(_.id).fetch.reverse
   }
 
 }

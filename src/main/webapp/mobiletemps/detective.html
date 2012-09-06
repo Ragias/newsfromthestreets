@@ -8,18 +8,32 @@
 	<span id="currentLat"> </span>
 	<span id="currentLon"> </span>
 	<div class="lift:DetectiveModeSnippet"></div>
+	<ul id="listOfGroupMessages"></ul>
 	<ul id="listOfMessages"></ul>
 	<div id="sendMessages"></div>
-	
+
 	<div class="lift:SelectSearchGroup">
 		Search Group:
 		<select name="searchGroup" id="the_searchGroup"></select>
 	</div>
-	
 
 	<script>
 		var map;
 		var markerArr = new Array();
+		function showGroupMessages() {
+			var searchGroupStr = $("#the_searchGroup option:selected").attr('value');
+			if (searchGroupStr) {
+				$.getJSON("/api/newsfromthestreets/searchgroupmessenger/" + searchGroupStr + "/20", function(json) {
+					$('#listOfGroupMessages').empty();
+					for (var i = 0; i <= json.length - 1; i++) {
+						$('#listOfGroupMessages').append($('<li>').append($('<span>').append(json[i].username + " : " + json[i].message)));
+					}
+				});
+			}
+			setTimeout(arguments.callee, 1000);
+
+		}
+
 		function initialize() {
 
 			var watch;
@@ -37,7 +51,7 @@
 
 					document.getElementById('currentLat').innerHTML = position.coords.latitude;
 					document.getElementById('currentLon').innerHTML = position.coords.longitude;
-					
+
 					$.ajax({
 						url : "/api/newsfromthestreets/detective",
 						type : "PUT",
@@ -71,7 +85,7 @@
 
 						});
 
-						setTimeout(arguments.callee, 10000);
+						setTimeout(arguments.callee, 1000);
 
 					});
 					checkJson();
@@ -93,12 +107,12 @@
 
 				var check = false;
 				for ( i = 0; i < markerArr.length; i++) {
-					console.log(markerArr[i].title + " " + location.user_id + " " + markerArr.length +
-					" lat " + location.lat + " long "+ location.long)
-					if (markerArr[i].title == location.user_id) {
+					//console.log(markerArr[i].title + " " + location.user_id + " " + markerArr.length +
+					//" lat " + location.lat + " long "+ location.long)
+					if (markerArr[i].id == location.id) {
 						check = true;
 
-						if (location.lat == markerArr[i].position.lat() && location.long == markerArr[i].position.long()) {
+						if (location.lat == markerArr[i].position.lat() && location.long == markerArr[i].position.lng()) {
 							break;
 						}
 						var point = new google.maps.LatLng(location.lat, location.long);
@@ -106,7 +120,8 @@
 						var marker = new google.maps.Marker({
 							position : point,
 							map : map,
-							title : location.user_id
+							title : location.username,
+							id : location.id
 						});
 						markerArr[i].setMap(null)
 						markerArr[i] = marker;
@@ -120,7 +135,8 @@
 					var marker = new google.maps.Marker({
 						position : point,
 						map : map,
-						title : location.user_id
+						title : location.username,
+						id : location.id
 					});
 					markerArr.push(marker);
 				}
@@ -147,5 +163,6 @@
 
 
 		google.maps.event.addDomListener(window, 'load', initialize);
+		showGroupMessages();
 	</script>
 </div>

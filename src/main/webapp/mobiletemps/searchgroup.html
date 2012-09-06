@@ -2,6 +2,7 @@
 
 	<div class="lift:ShowSearchGroup"></div>
 
+
 	<div class="lift:SearchGroupMessenger">
 		<span id="message"> </span>
 		<span id="send"></span>
@@ -38,6 +39,19 @@
 		var map;
 		var markerArr = new Array();
 
+		function showListOfGroupMessages() {
+			var id = getParameterByName("id")
+			if(id){
+			$.getJSON("/api/newsfromthestreets/searchgroupmessenger/" + id + "/" + getParameterByName("num"), function(json) {
+				$('#listOfGroupMessages').empty();
+				for (var i = 0; i <= json.length - 1; i++) {
+					$('#listOfGroupMessages').append($('<li>').append($('<span>').append(json[i].username + " : " + json[i].message)));
+				}
+			});
+			setTimeout(arguments.callee, 1000);
+			}
+		}
+
 		function initialize() {
 			var greece = {
 				'lat' : 38.01861070670554,
@@ -55,7 +69,7 @@
 
 			var checkJson = (function() {
 				var searchGroupStr = getParameterByName("id");
-
+				if(searchGroupStr){
 				$.getJSON("/api/newsfromthestreets/searchgroup/" + searchGroupStr, function(json) {
 
 					if (json.length > 0) {
@@ -75,7 +89,7 @@
 				});
 
 				setTimeout(arguments.callee, 1000);
-
+				}
 			});
 			checkJson();
 
@@ -84,7 +98,7 @@
 				var check = false;
 				for ( i = 0; i < markerArr.length; i++) {
 
-					if (markerArr[i].title == location.user_id) {
+					if (markerArr[i].id == location.id) {
 						check = true;
 
 						if (location.latlng.lat == markerArr[i].position.lat() && location.latlng.long == markerArr[i].position.lng()) {
@@ -95,7 +109,8 @@
 						var marker = new google.maps.Marker({
 							position : point,
 							map : map,
-							title : location.user_id
+							title : location.username,
+							id : location.id
 						});
 						markerArr[i].setMap(null)
 						markerArr[i] = marker;
@@ -109,7 +124,8 @@
 					var marker = new google.maps.Marker({
 						position : point,
 						map : map,
-						title : location.user_id
+						title : location.username,
+						id : location.id
 					});
 					markerArr.push(marker);
 				}
@@ -128,5 +144,6 @@
 		};
 
 		google.maps.event.addDomListener(window, 'load', initialize);
+		showListOfGroupMessages();
 	</script>
 </div>

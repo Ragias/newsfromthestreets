@@ -36,22 +36,49 @@ class ListOfNews extends DispatchSnippet {
     }</div>
   }
 }
+class AddNewButton {
+  def render: NodeSeq = {
+    User.currentUser.map {
+      u =>
+        SHtml.ajaxButton(Text("Add article"), () => {
+          S.redirectTo("/addArticle")
+        })
+
+    }.getOrElse(NodeSeq.Empty)
+  }
+}
 
 class AddNew extends StatefulSnippet {
   private var title = ""
   private var article = ""
   private var category = ""
-  private var latStr: String = "0.0"
-  private var lngStr: String = "0.0"
+  private var latStr: String = ""
+  private var lngStr: String = ""
   private var article_id = ""
   def add() {
-    for {
-      user <- User.currentUser
-      lat <- asDouble(latStr)
-      lng <- asDouble(lngStr)
-    } yield {
-      Article.add(user, title, article, category, lat, lng)
+
+    User.currentUser.map {
+      user =>
+
+        if (latStr.isEmpty || lngStr.isEmpty) {
+          S.error("location", "Choose a location from the google map")
+
+        } else if (title.isEmpty || article.isEmpty()) {
+          S.error("article", "Add the title AND the article")
+
+        } else {
+          for {
+            lat <- asDouble(latStr)
+            lng <- asDouble(lngStr)
+          } yield {
+            Article.add(user, title, article, category, lat, lng)
+            S.redirectTo("/index")
+          }
+
+        }
+    }.getOrElse {
       S.redirectTo("/index")
+
     }
   }
 
@@ -69,8 +96,8 @@ class AddNew extends StatefulSnippet {
           "name=article" #> SHtml.textarea(article, article = _, "id" -> "the_article") &
           "name=lat" #> SHtml.text(latStr, latStr = _, "id" -> "the_lat") &
           "name=lng" #> SHtml.text(lngStr, lngStr = _, "id" -> "the_lng") &
-          "type=submit" #> SHtml.onSubmitUnit(add
-              ))(in) //it little confusing but is just a function that gets the in
+          "type=submit" #> SHtml.onSubmitUnit(
+            add))(in) ++ SHtml.ajaxButton(Text("Cancel"), () => S.redirectTo("/index")) //it little confusing but is just a function that gets the in
 
     }
     out
@@ -86,14 +113,28 @@ class EditNew extends StatefulSnippet {
   private var lngStr: String = "0.0"
   private var article_id = ""
   def edit() {
-    for {
-      user <- User.currentUser
-      lat <- asDouble(latStr)
-      lng <- asDouble(lngStr)
-    } yield {
+    User.currentUser.map {
+      user =>
 
-      Article.find(article_id).map(_.edit(user, title, article, category, lat, lng))
-      S.notice("The article is edited")
+        if (latStr.isEmpty || lngStr.isEmpty) {
+          S.error("location", "Choose a location from the google map")
+
+        } else if (title.isEmpty || article.isEmpty()) {
+          S.error("article", "Add the title AND the article")
+
+        } else {
+          for {
+            lat <- asDouble(latStr)
+            lng <- asDouble(lngStr)
+          } yield {
+            Article.find(article_id).map(_.edit(user, title, article, category, lat, lng))
+            S.redirectTo("/index")
+          }
+
+        }
+    }.getOrElse {
+      S.redirectTo("/index")
+
     }
   }
   def dispatch = { case "render" => render }
@@ -122,7 +163,8 @@ class EditNew extends StatefulSnippet {
                       "name=article" #> SHtml.textarea(article, article = _, "id" -> "the_article") &
                       "name=lat" #> SHtml.text(latStr, latStr = _, "id" -> "the_lat") &
                       "name=lng" #> SHtml.text(lngStr, lngStr = _, "id" -> "the_lng") &
-                      "type=submit" #> SHtml.onSubmitUnit(edit))(in)
+                      "type=submit" #> SHtml.onSubmitUnit(
+                        edit))(in) ++ SHtml.ajaxButton(Text("Cancel"), () => S.redirectTo("/index"))
                   }
               }
           }
@@ -142,11 +184,13 @@ class ShowNew {
       Article.find(id).map {
         a =>
 
-          out = ("#title" #> <h3>{a.title.is}</h3> &
-            "#username" #> <span>{a.getUsername()}</span> &
-            "#date" #> <p>{a.getExactDateInString()}</p> &
-            "#article" #> <article>{a.article.is} </article>)(in)
-
+          out = ("#title" #> <h3>{ a.title.is }</h3> &
+            "#username" #> <span>{ a.getUsername() }</span> &
+            "#date" #> <p>{ a.getExactDateInString() }</p> &
+            "#article" #> <article>{ a.article.is } </article>)(in) 
+          if(User.currentUser.isEmpty){
+            out +:=  <ul id="listOfComments"></ul>
+          }  
       }
     }
     out
@@ -160,8 +204,8 @@ class ListOfMyNews {
     User.currentUser.map {
       user =>
         val ls = Article.findByUser(user)
-        
-        out = SHtml.ajaxButton(Text("Add Article"),()=>{
+
+        out = SHtml.ajaxButton(Text("Add Article"), () => {
           S.redirectTo("/addArticle")
         }) ++ <ul id="listOfMyNews" data-role="listview" data-theme="b">
                 {
@@ -195,3 +239,33 @@ class ListOfMyNews {
     out
   }
 }
+
+class CommentNew {
+  def render(in: NodeSeq): NodeSeq = {
+    var message = ""
+    var xhtml: NodeSeq = <span></span>
+    S.param("q").map {
+      q =>
+        if (q == "show") {
+          for {
+            aid <- S.param("id")
+            user <- User.currentUser
+            article <- Article.find(aid)
+          } yield {
+
+            xhtml = <ul id="listOfComments"></ul>++("#message" #> SHtml.ajaxTextarea("", s => {
+              message = s
+            }) &
+              "#send" #> SHtml.ajaxButton(Text("Send"), () => {
+                CommentArticle.add(user, article, message)
+                SetValById("message", "")
+
+              }))(in)
+          }
+        }
+    }
+    xhtml
+  }
+}
+
+

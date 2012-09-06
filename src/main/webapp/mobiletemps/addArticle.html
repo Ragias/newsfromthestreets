@@ -27,9 +27,8 @@
 			</input>
 		</div>
 	</div>
-	<script type="text/javascript">
+		<script type="text/javascript">
 		function initialize() {
-			
 			var latStr = "";
 			var lngStr = "";
 			$(document).ready(function() {
@@ -68,11 +67,14 @@
 			} else {
 				var marker;
 
-				var mapOptions = {
-					center : new google.maps.LatLng(-34.397, 150.644),
-					zoom : 8,
-					mapTypeId : google.maps.MapTypeId.ROADMAP
-				};
+				var greece = {'lat' : 38.01861070670554,
+			'lng' : 23.625567382812505 }
+			
+			var mapOptions = {
+				center : new google.maps.LatLng(greece.lat, greece.lng),
+				zoom : 5,
+				mapTypeId : google.maps.MapTypeId.ROADMAP
+			};
 
 				var map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
 				function placeMarker(location) {

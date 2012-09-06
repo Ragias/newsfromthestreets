@@ -1,1 +1,8 @@
-The README will be a complete soon
+TODO 
+
+1) List of groups make a q param and buttons with redirections and show all the detectives in a map
+2) Check if editing articleworks without changing the date
+3) see if you can get the address from the ip using whois
+4) hide the map with a button  by changing the style
+5) show search group will have the edit , delete , get out and stop the request button
+ 

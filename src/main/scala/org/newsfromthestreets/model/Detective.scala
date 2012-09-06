@@ -8,6 +8,7 @@ import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JValue
 import com.foursquare.rogue.LatLong
+import net.liftweb.mongodb.BsonDSL._
 
 class Detective extends MongoRecord[Detective] with ObjectIdPk[Detective] with Loggable {
   def meta = Detective
@@ -62,6 +63,9 @@ class Detective extends MongoRecord[Detective] with ObjectIdPk[Detective] with L
 }
 
 object Detective extends Detective with MongoMetaRecord[Detective] with Loggable {
+    ensureIndex(("latlng" -> "2d"))
+      ensureIndex(("user_id" -> "1"))
+
   val geoIdx = Detective.index(_.geolatlng, TwoD)
 
   def add(user: User, lat: Double, lng: Double): Box[Detective] = {
@@ -139,6 +143,8 @@ class SearchGroup extends MongoRecord[SearchGroup] with ObjectIdPk[SearchGroup] 
 }
 
 object SearchGroup extends SearchGroup with MongoMetaRecord[SearchGroup] with Loggable {
+    ensureIndex(("admin_id" -> "1"))
+
   def add(detective: Detective, name: String, description: String): Box[SearchGroup] = {
 
     val group = SearchGroup.createRecord
@@ -157,7 +163,10 @@ object SearchGroup extends SearchGroup with MongoMetaRecord[SearchGroup] with Lo
 
   def findByDetectiveNotIn(detective: Detective): List[SearchGroup] = {
     SearchGroup.findAll.filter {
-      sg => DetectiveInGroup.findByDetectiveAndGroup(detective, sg).isEmpty
+      sg => DetectiveInGroup.findByDetectiveAndGroup(detective, sg).map{
+        dig => 
+          dig.request.is == false 
+      }.getOrElse(true)
     }
   }
 
@@ -258,6 +267,9 @@ class DetectiveInGroup extends MongoRecord[DetectiveInGroup] with ObjectIdPk[Det
 }
 
 object DetectiveInGroup extends DetectiveInGroup with MongoMetaRecord[DetectiveInGroup] with Loggable {
+    ensureIndex(("searchgroup_id" -> "1"))
+    ensureIndex(("user_id" -> "1"))
+
   def add(detective: Detective, group: SearchGroup, accepted: Boolean) = {
     DetectiveInGroup.findByDetectiveAndGroup(detective, group).map {
       dig => Full(dig)
@@ -315,6 +327,9 @@ class SearchGroupMessage extends MongoRecord[SearchGroupMessage] with ObjectIdPk
 }
 
 object SearchGroupMessage extends SearchGroupMessage with MongoMetaRecord[SearchGroupMessage] with Loggable {
+  ensureIndex(("searchgroup_id" -> "1"))
+  ensureIndex(("detective_id" -> "1"))
+
   def add(group: SearchGroup, detective: Detective, message: String) {
     SearchGroupMessage.createRecord
       .detective_id(detective.id.is)
@@ -327,5 +342,12 @@ object SearchGroupMessage extends SearchGroupMessage with MongoMetaRecord[Search
   }
   def findByDetective(detective: Detective) = {
     SearchGroupMessage.where(_.detective_id eqs detective.id.is).fetch()
+  }
+  def showByGroupAndLimit(sg:SearchGroup,limit:Int)={
+    SearchGroupMessage.where(_.searchgroup_id eqs sg.id.is).orderDesc(_.id).fetch(limit).reverse
+  }
+  
+  def showByGroup(sg:SearchGroup)={
+    SearchGroupMessage.where(_.searchgroup_id eqs sg.id.is).orderDesc(_.id).fetch.reverse
   }
 }

@@ -18,7 +18,7 @@ object Preperation {
     Detective.findAll.foreach(_.setMode(false))
   }
   def addCategories {
-    val categories = List("Crimes", "Politics", "Sport", "Business", "Arts", "Science", "Technology", "Health", "Fashion", "Opinion")
+    val categories = List("Traffic","Crimes", "Politics", "Sport", "Business", "Arts", "Science", "Technology", "Health", "Fashion", "Opinion")
     categories.foreach {
       c => ArticleCategory.findOrAdd(c)
     }

@@ -44,6 +44,22 @@ object ArticleJsons extends RestHelper with Loggable {
       }
 
     }
+    
+    case "api" :: "newsfromthestreets" :: "articlecomment" :: id :: num :: _ JsonGet req => {
+      var ja = JArray(List())
+       for {
+        // find the item, and if it’s not found,
+        // return a nice message for the 404
+        a <- Article.find(id) ?~ "Article Not Found"
+      } yield {
+         
+        ja = JArray(CommentArticle.showByArticleAndLimit(a,asInt(num).getOrElse(20)).map{
+          ca => ("username" -> ca.getUsername()) ~
+                ("message" -> ca.message.is)
+        })
+      }
+      ja
+    }
 
   }
 }

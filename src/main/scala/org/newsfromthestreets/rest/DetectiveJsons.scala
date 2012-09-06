@@ -1,6 +1,7 @@
 package org.newsfromthestreets.rest
 import net.liftweb.http._
 import rest._
+import net.liftweb.util.Helpers._
 import net.liftweb.json.JsonDSL._
 import org.newsfromthestreets.model._
 import net.liftweb.common._
@@ -46,17 +47,38 @@ object DetectiveJsons extends RestHelper with Loggable {
               !dig.detective_id.obj.isEmpty && dig.request.is == true && dig.blocked.is == false
           }.map {
             dig =>
-              dig.detective_id.obj.get.asJValue
+              val d = dig.detective_id.obj.get
+              ("id" -> d.id.is.toString()) ~
+              ("username" -> d.getUserName()) ~ 
+              ("latlng" -> ("lat" -> d.geolatlng.get.lat) ~ ("long" -> d.geolatlng.get.long))
           })
 
         }
       } else {
         ls = JArray(Detective.findByMode(true).map {
 
-          d => d.asJValue
+          d => ("id" -> d.id.is.toString()) ~
+              ("username" -> d.getUserName()) ~ 
+              ("latlng" -> ("lat" -> d.geolatlng.get.lat) ~ ("long" -> d.geolatlng.get.long))
         })
       }
       ls
+    }
+    
+    case "api" :: "newsfromthestreets" :: "searchgroupmessenger" :: id :: num :: _ JsonGet req => {
+      var ja = JArray(List())
+       for {
+        // find the item, and if it’s not found,
+        // return a nice message for the 404
+        sg <- SearchGroup.find(id) ?~ "Article Not Found"
+      } yield {
+         
+        ja = JArray(SearchGroupMessage.showByGroupAndLimit(sg,asInt(num).getOrElse(20)).map{
+          ca => ("username" -> ca.getUsername()) ~
+                ("message" -> ca.message.is)
+        })
+      }
+      ja
     }
 
   }

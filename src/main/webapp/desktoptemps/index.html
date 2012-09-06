@@ -1,7 +1,7 @@
-<div> 
+<div>
 
-<div id="map_canvas" style="width: 300px; height: 300px"></div>
-
+	<div id="map_canvas" style="width: 300px; height: 300px"></div>
+	<div class="lift:AddNewButton"></div>
 	<ul id="listOfArticles" data-role="listview" data-inset="true" style="width: 300px; height: 200px"></ul>
 	<div class="lift:ListOfNews">
 		Category:
@@ -16,9 +16,11 @@
 
 	<script type="text/javascript">
 		function initialize() {
-			var greece = {'lat' : 38.01861070670554,
-			'lng' : 23.625567382812505 }
-			
+			var greece = {
+				'lat' : 38.01861070670554,
+				'lng' : 23.625567382812505
+			}
+
 			var mapOptions = {
 				center : new google.maps.LatLng(greece.lat, greece.lng),
 				zoom : 5,
@@ -104,7 +106,7 @@
 					}
 					console.log("/api/newsfromthestreets/articles/" + categoryStr + "/" + dateStr + "?lat=" + placeLat + "&lng=" + placeLng);
 					$.getJSON("/api/newsfromthestreets/articles/" + categoryStr + "/" + dateStr + "?lat=" + placeLat + "&lng=" + placeLng, function(json) {
-							createNewList(json);
+						createNewList(json);
 						if (json.length > 0) {
 							for ( i = 0; i < json.length; i++) {
 
@@ -137,7 +139,7 @@
 								position : point,
 								map : map,
 								title : location.title,
-								id: location.id
+								id : location.id
 							});
 							markerArr[i].setMap(null)
 							markerArr[i] = marker;
@@ -152,7 +154,7 @@
 							position : point,
 							map : map,
 							title : location.title,
-							id: location.id
+							id : location.id
 						});
 						markerArr.push(marker);
 					}
@@ -163,7 +165,5 @@
 		}
 
 	</script>
-
-
 
 </div>
