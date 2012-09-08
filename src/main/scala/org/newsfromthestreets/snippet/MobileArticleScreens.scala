@@ -10,6 +10,10 @@ import org.newsfromthestreets.model._
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
 import java.text.SimpleDateFormat
+import com.fmpwizard.cometactor.pertab.namedactor.InsertNamedComet
+import com.fmpwizard.cometactor.pertab.namedactor.CometListerner
+import net.liftweb.actor.LiftActor
+import org.newsfromthestreets.comet.Chat
 
 class ListOfNews extends DispatchSnippet {
   def dispatch = {
@@ -187,10 +191,10 @@ class ShowNew {
           out = ("#title" #> <h3>{ a.title.is }</h3> &
             "#username" #> <span>{ a.getUsername() }</span> &
             "#date" #> <p>{ a.getExactDateInString() }</p> &
-            "#article" #> <article>{ a.article.is } </article>)(in) 
-          if(User.currentUser.isEmpty){
-            out +:=  <ul id="listOfComments"></ul>
-          }  
+            "#article" #> <article>{ a.article.is } </article>)(in)
+          if (User.currentUser.isEmpty) {
+            out +:= <ul id="listOfComments"></ul>
+          }
       }
     }
     out
@@ -240,30 +244,53 @@ class ListOfMyNews {
   }
 }
 
-class CommentNew {
+class ArticleChatComet extends InsertNamedComet with Loggable {
+  override lazy val name = S.param("id") openOr ("")
+  override lazy val cometClass = "ArticleChat"
+
+}
+
+class CommentNew extends Loggable {
   def render(in: NodeSeq): NodeSeq = {
     var message = ""
-    var xhtml: NodeSeq = <span></span>
-    S.param("q").map {
-      q =>
-        if (q == "show") {
-          for {
-            aid <- S.param("id")
-            user <- User.currentUser
-            article <- Article.find(aid)
-          } yield {
+    var xhtml: NodeSeq = NodeSeq.Empty
+    val aid = S.param("id").getOrElse("")
+    val q = S.param("q")
 
-            xhtml = <ul id="listOfComments"></ul>++("#message" #> SHtml.ajaxTextarea("", s => {
-              message = s
-            }) &
-              "#send" #> SHtml.ajaxButton(Text("Send"), () => {
-                CommentArticle.add(user, article, message)
-                SetValById("message", "")
+    if (q == "show") {
+      CometListerner.listenerFor(Full(aid)) match {
+        case a: LiftActor => {
+          logger.info("We send the id=" + aid)
+          a ! Chat(aid, 10)
 
-              }))(in)
-          }
         }
+        case _ => logger.info("No actor to send an update")
+      }
+      for {
+
+        user <- User.currentUser
+        article <- Article.find(aid)
+      } yield {
+
+        xhtml = ("#message" #> SHtml.ajaxTextarea("", s => {
+          message = s
+        }) &
+          "#send" #> SHtml.ajaxButton(Text("Send"), () => {
+            CommentArticle.add(user, article, message)
+            CometListerner.listenerFor(Full(aid)) match {
+              case a: LiftActor => {
+                logger.info("We send the id=" + aid)
+                a ! Chat(aid, 10)
+
+              }
+              case _ => logger.info("No actor to send an update")
+            }
+            SetValById("message", "")
+
+          }))(in)
+      }
     }
+
     xhtml
   }
 }

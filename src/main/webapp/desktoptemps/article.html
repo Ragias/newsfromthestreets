@@ -4,12 +4,12 @@
 	<div id="map_canvas" style="width: 500px; height: 300px"></div>
 	<div>
 		<div class="lift:ShowArticle">
-			<span class="title"></span>
-			<span class="article"></span>
-			<span class="username"></span>
-			<span class="date"></span>
-			<span class="lat"></span>
-			<span class="lng"></span>
+			<span id="title"></span>
+			<span id="article"></span>
+			<span id="username"></span>
+			<span id="date"></span>
+			<span id="lat"></span>
+			<span id="lng"></span>
 
 		</div>
 	</div>
@@ -41,6 +41,15 @@
 		</div>
 	</div>
 
+<div class="lift:ArticleChatComet">
+		<ul id="articleComments">
+			<li>
+
+			</li>
+		</ul>
+		
+
+	</div>
 	
 	<div>
 		<div class="lift:CommentNew">
@@ -51,75 +60,10 @@
 	</div>
 
 	<script type="text/javascript">
-		function showListOfComments() {
-			$.getJSON("/api/newsfromthestreets/articlecomment/" + getParameterByName("id") + "/" + getParameterByName("num"), function(json) {
-				$('#listOfComments').empty();
-				for (var i = 0; i <= json.length - 1; i++) {
-					$('#listOfComments').append($('<li>').append($('<span>').append(json[i].username + " : " + json[i].message)));
-				}
-			});
-			setTimeout(arguments.callee, 1000);
-
-		}
-      function getParameterByName(name) {
-			name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-			var regexS = "[\\?&]" + name + "=([^&#]*)";
-			var regex = new RegExp(regexS);
-			var results = regex.exec(window.location.search);
-			if (results == null)
-				return "";
-			else
-				return decodeURIComponent(results[1].replace(/\+/g, " "));
-		}
+		
 		function initialize() {
-
-			$.getJSON("/api/newsfromthestreets/article/" + getParameterByName("id"), function(json) {
-				console.log(json.latlng.lat + " " + json.latlng.long + " " + json.title);
-				var lat = json.latlng.lat;
-				var lng = json.latlng.long;
-
-				var mapOptions = {
-					zoom : 9,
-					center : new google.maps.LatLng(lat, lng),
-					mapTypeId : google.maps.MapTypeId.ROADMAP
-				};
-
-				var map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
-
-				var point = new google.maps.LatLng(lat, lng);
-
-				var marker = new google.maps.Marker({
-					position : point,
-					map : map,
-					title : location.title,
-					id : location.id
-				});
-
-				function placeMarker(location) {
-					if (marker) {
-						marker.setPosition(location);
-					} else {
-						marker = new google.maps.Marker({
-							position : location,
-							map : map
-
-						});
-					}
-				}
-
-
-				google.maps.event.addListener(map, 'click', function(event) {
-					document.getElementById('the_lat').value = event.latLng.lat();
-					document.getElementById('the_lng').value = event.latLng.lng();
-					//alert(event.latLng.lat()+" "+event.latLng.lng())
-					placeMarker(event.latLng);
-				});
-			});
-		}
-
-
-		google.maps.event.addDomListener(window, 'load', initialize);
-        showListOfComments();
+			forArticle();
+		};
 		
 	</script>
 </div>

@@ -52,7 +52,8 @@ class Boot {
 
     LiftRules.dispatch.append(ArticleJsons)
     LiftRules.dispatch.append(DetectiveJsons)
-
+    LiftRules.dispatch.append(GroupJsons)
+    
     // set character encoding
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
 

@@ -14,7 +14,6 @@ class Detective extends MongoRecord[Detective] with ObjectIdPk[Detective] with L
   def meta = Detective
   object user_id extends ObjectIdRefField(this, User)
   object mode extends BooleanField(this)
- 
   object geolatlng extends MongoCaseClassField[Detective, LatLong](this) { override def name = "latlng" }
 
   def getUserName(): String = {
@@ -27,7 +26,7 @@ class Detective extends MongoRecord[Detective] with ObjectIdPk[Detective] with L
   }
 
   def setLocation(lat: Double, lng: Double) {
-    this.geolatlng(LatLong(lat,lng)).update
+    this.geolatlng(LatLong(lat, lng)).update
   }
 
   def setLocationByJson(json: JObject) {
@@ -63,8 +62,8 @@ class Detective extends MongoRecord[Detective] with ObjectIdPk[Detective] with L
 }
 
 object Detective extends Detective with MongoMetaRecord[Detective] with Loggable {
-    ensureIndex(("latlng" -> "2d"))
-      ensureIndex(("user_id" -> "1"))
+  ensureIndex(("latlng" -> "2d"))
+  ensureIndex(("user_id" -> "1"))
 
   val geoIdx = Detective.index(_.geolatlng, TwoD)
 
@@ -74,18 +73,23 @@ object Detective extends Detective with MongoMetaRecord[Detective] with Loggable
       case _ => {
         Detective.createRecord
           .user_id(user.id.is)
-          .geolatlng(LatLong(lat,lng))
+          .geolatlng(LatLong(lat, lng))
           .mode(true)
           .saveTheRecord()
       }
     }
   }
-  def addUser(user: User) {
-    Detective.createRecord
-      .user_id(user.id.is)
-      .geolatlng(LatLong(0,0))
-      .mode(false)
-      .saveTheRecord()
+  def addUser(user: User) = {
+    findByUser(user: User) match {
+      case Full(d) => Full(d)
+      case _ => {
+        Detective.createRecord
+          .user_id(user.id.is)
+          .geolatlng(LatLong(0, 0))
+          .mode(true)
+          .saveTheRecord()
+      }
+    }
   }
 
   def findByUser(user: User): Box[Detective] = {
@@ -97,7 +101,6 @@ object Detective extends Detective with MongoMetaRecord[Detective] with Loggable
   }
 
 }
-
 
 class SearchGroup extends MongoRecord[SearchGroup] with ObjectIdPk[SearchGroup] with Loggable {
   def meta = SearchGroup
@@ -134,16 +137,16 @@ class SearchGroup extends MongoRecord[SearchGroup] with ObjectIdPk[SearchGroup] 
   def showMessagesByNumberOfResults(num: Int): List[SearchGroupMessage] = {
     SearchGroupMessage.where(_.searchgroup_id eqs this.id.is).orderDesc(_.id).fetch(num).reverse
   }
-  
-  def getActiveUsernames():List[String]={
-    DetectiveInGroup.where(_.searchgroup_id eqs this.id.is).fetch().filter(_.mode.is == true).map{
+
+  def getActiveUsernames(): List[String] = {
+    DetectiveInGroup.where(_.searchgroup_id eqs this.id.is).fetch().filter(_.mode.is == true).map {
       dig => dig.getDetectiveUserName()
     }
   }
 }
 
 object SearchGroup extends SearchGroup with MongoMetaRecord[SearchGroup] with Loggable {
-    ensureIndex(("admin_id" -> "1"))
+  ensureIndex(("admin_id" -> "1"))
 
   def add(detective: Detective, name: String, description: String): Box[SearchGroup] = {
 
@@ -161,22 +164,23 @@ object SearchGroup extends SearchGroup with MongoMetaRecord[SearchGroup] with Lo
     SearchGroup.where(_.name eqs name).fetch()
   }
 
-  def findByDetectiveNotIn(detective: Detective): List[SearchGroup] = {
+  def findByDetectiveAndRequest(detective: Detective, reque: Boolean): List[SearchGroup] = {
     SearchGroup.findAll.filter {
-      sg => DetectiveInGroup.findByDetectiveAndGroup(detective, sg).map{
-        dig => 
-          dig.request.is == false 
-      }.getOrElse(true)
+      sg =>
+        DetectiveInGroup.findByDetectiveAndGroup(detective, sg).map {
+          dig =>
+            dig.request.is == reque
+        }.getOrElse(true)
     }
   }
 
   def findByAdmin(detective: Detective): List[SearchGroup] = {
     SearchGroup.where(_.admin_id eqs detective.id.is).fetch()
   }
-  
-  def findActiveGroups():List[SearchGroup]={
-    SearchGroup.findAll.filter{
-      sg => 
+
+  def findActiveGroups(): List[SearchGroup] = {
+    SearchGroup.findAll.filter {
+      sg =>
         sg.getActiveUsernames().size > 0
     }
   }
@@ -263,12 +267,24 @@ class DetectiveInGroup extends MongoRecord[DetectiveInGroup] with ObjectIdPk[Det
       ""
     }
   }
+  
+  def changeModeToFalseForAllTheOthersExceptThis(){
+    DetectiveInGroup.where(_.detective_id eqs this.detective_id.is).fetch.filter{
+      dig =>
+        dig.mode.is == true
+    }.map{
+      dig =>
+        if (dig.searchgroup_id.is.toString() != this.searchgroup_id.is.toString()){
+          dig.changeMode(false)
+        }
+    }
+  }
 
 }
 
 object DetectiveInGroup extends DetectiveInGroup with MongoMetaRecord[DetectiveInGroup] with Loggable {
-    ensureIndex(("searchgroup_id" -> "1"))
-    ensureIndex(("user_id" -> "1"))
+  ensureIndex(("searchgroup_id" -> "1"))
+  ensureIndex(("user_id" -> "1"))
 
   def add(detective: Detective, group: SearchGroup, accepted: Boolean) = {
     DetectiveInGroup.findByDetectiveAndGroup(detective, group).map {
@@ -343,11 +359,11 @@ object SearchGroupMessage extends SearchGroupMessage with MongoMetaRecord[Search
   def findByDetective(detective: Detective) = {
     SearchGroupMessage.where(_.detective_id eqs detective.id.is).fetch()
   }
-  def showByGroupAndLimit(sg:SearchGroup,limit:Int)={
+  def showByGroupAndLimit(sg: SearchGroup, limit: Int) = {
     SearchGroupMessage.where(_.searchgroup_id eqs sg.id.is).orderDesc(_.id).fetch(limit).reverse
   }
-  
-  def showByGroup(sg:SearchGroup)={
+
+  def showByGroup(sg: SearchGroup) = {
     SearchGroupMessage.where(_.searchgroup_id eqs sg.id.is).orderDesc(_.id).fetch.reverse
   }
 }

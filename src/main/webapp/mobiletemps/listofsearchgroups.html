@@ -1,14 +1,51 @@
 <div >
 	<div class="lift:AddButtonSearchGroup"></div>
-   <h2>List of Groups you are Admin </h2>
-   <div class="lift:ListOfSearchGroupYouAreAdmin"></div>	
-   
-   <h2>List of Groups you are in </h2>
-   <div class="lift:ListOfDetectiveInGroup"></div>
-   
-   <h2> List of active Groups</h2>
-   <div class="lift:ShowActiveGroups"></div>
-   
-   <h2>List of Groups you are not in</h2>
-   <div class="lift:ListOfSearchGroupDetectiveIsNotMember"></div>
+	<h2>List of Groups you are Admin </h2>
+	<div class="lift:ListOfSearchGroupYouAreAdmin">
+		<ul id="listOfSearchGroupYouAreAdmin">
+			<li>
+				<a id="groupName"></a>
+				<article id="groupDescription" ></article>
+				<span id="numberOfDetectives"></span>
+				<span id="admin"></span>
+			</li>
+		</ul>
+	</div>
+
+	<h2>List of Groups you are in </h2>
+	<div class="lift:ListOfDetectiveInGroup">
+		<ul class="clearable" id = "listOfDetectiveInGroups">
+			<li class="clearable">
+				<a class="clearable" id="groupName"></a>
+				<article class="clearable" id="groupDescription" ></article>
+				<span class="clearable" id="numberOfDetectives"></span>
+				<span class="clearable" id="admin"></span>
+				<span class="clearable" id="request"></span>
+			</li>
+		</ul>
+	</div>
+
+	<h2> List of active Groups</h2>
+	<div class="lift:ShowActiveGroups">
+		<ul id="listOfActiveGroups">
+			<li>
+				<a id="groupName"></a>
+				<article id="groupDescription" ></article>
+				<span id="numberOfDetectives"></span>
+				<span id="admin"></span>
+			</li>
+		</ul>
+	</div>
+
+	<h2>List of Groups you are not in</h2>
+	<div class="lift:ListOfGroupsUserIsNotMember">
+		<ul id="listOfGroupsUserIsNotMember">
+			<li>
+				<a id="groupName"></a>
+				<article id="groupDescription" ></article>
+				<span id="numberOfDetectives"></span>
+				<span id="admin"></span>
+			</li>
+		</ul>
+	</div>
 </div>

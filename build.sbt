@@ -43,7 +43,8 @@ libraryDependencies ++= Seq(
   "org.mindrot" % "jbcrypt" % "0.3m" % "compile->default",
   "com.h2database" % "h2" % "1.2.138", // In-process database, useful for development systems
   "com.foursquare" %% "rogue" % "1.1.7" intransitive(),
-  "ch.qos.logback" % "logback-classic" % "0.9.26" % "compile->default" // Logging
+  "ch.qos.logback" % "logback-classic" % "0.9.26" % "compile->default", // Logging
+  "com.fmpwizard" %% "lift-named-comet" % "0.3"
 )
 
 seq(webSettings: _*)

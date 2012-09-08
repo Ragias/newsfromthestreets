@@ -23,31 +23,26 @@ class ShowArticle {
       user <- article.user_id.obj
     } yield {
       if (q == "show") {
-        out = <div class="showArticle">
-                <span class="title"> { article.title.is }</span><br/>
-                <span class="article"> { article.article.is }</span><br/>
-                <span class="username"> { user.name.is } </span><br/>
-                <span class="date"> {
+        out = (
+                "#title" #> { article.title.is } &
+                "#article" #> { article.article.is } &
+               "#username" #> { user.name.is } &
+                "#date" #> {
                   article.id.is.getTime().date.toString()
-                } </span><br/>
-                <span class="lat"> { article.geolatlng.get.lat.toString() }</span><br/>
-                <span class="lng"> { article.geolatlng.get.long.toString() } </span><br/>
-              </div>
+                } &
+                "#lat" #> { article.geolatlng.get.lat.toString() } &
+                "#lng" #> { article.geolatlng.get.long.toString() } 
+              )(in)
         User.currentUser.map {
           u =>
-            out = <a id="addArticle" href="/article?q=add"> Add Article</a> ++ out
+            out = SHtml.ajaxButton(Text("Add Article"), ()=>{
+              S.redirectTo("/article?q=add")
+            }) ++ out
         }
 
       }
 
     }
-    if (S.param("q").isEmpty) {
-      User.currentUser.map {
-        u =>
-          out = <a id="addArticle" href="/article?q=add"> Add Article</a> ++ out
-      }
-    }
-
     out
   }
 }
@@ -126,79 +121,4 @@ class AddArticle extends StatefulSnippet {
 
 }
 
-class ListOfArticles extends StatefulSnippet {
-  private var date: Box[ArticleDate] = Empty
-  private var category: Box[ArticleCategory] = Empty
-  def dispatch = {
-    case "render" => render
-
-  }
-
-  def showList(): JsCmd = {
-
-    SetHtml("listOfArticles", <ul id="listOfArticles">
-                                {
-
-                                  Article.listByCategoryDateLocation(date, category, Empty, Empty,0.3).map {
-                                    a =>
-                                      <li>
-                                        {
-                                          <span> { a.title.is }</span>
-                                          <br/>
-                                          <span>{
-                                            a.category_id.obj match {
-                                              case Full(x) => x.name
-                                              case _ => ""
-                                            }
-                                          }</span><br/>
-                                          <span> { a.id.is.getTime().date.toString() }</span><br/>
-                                          <span> { a.article.is }</span><br/>
-                                          <span> { a.user_id.obj.get.name.is }</span><br/>
-                                          <a href={ "/article?q=show&id=" + a.id.is.toString() }> more </a>
-                                          <span>{
-                                            var editXml: NodeSeq = <span></span>
-                                            User.currentId.map {
-                                              uid =>
-                                                if (uid.toStringMongod() == a.user_id.is.toStringMongod()) {
-                                                  editXml = <a href={ "/article?q=edit&id=" + a.id.is.toString() }> edit </a>
-                                                }
-                                            }
-                                            editXml
-                                          }</span><br/>
-                                        }
-                                      </li>
-                                  }
-                                }
-                              </ul>)
-  }
-
-  def render(in: NodeSeq): NodeSeq = {
-    var fmt = new SimpleDateFormat("dd-MM-yy");
-    <div>{
-      Script(OnLoad(showList)) ++
-        ("name=date" #> SHtml.ajaxSelect(ArticleDate.findAll.map { ad =>
-          val dateStr = fmt.format(ad.date.get.getTime())
-          (dateStr, dateStr)
-        } ++ List(("All", "All")), Full("All"), s => {
-          if (s.equals("All")) {
-            date = Empty
-          } else {
-
-            date = ArticleDate.findByDateString(s)
-          }
-          showList()
-        }) &
-          "name=category" #> SHtml.ajaxSelect(ArticleCategory.findAll.map {
-            ac => (ac.name.is, ac.name.is)
-          } ++ List(("All", "All")), Full("All"), s => {
-            if (s.equals("All")) {
-              category = Empty
-            } else {
-              category = ArticleCategory.findByName(s)
-            }
-            showList()
-          }))(in)
-    }</div>
-  }
-}
 

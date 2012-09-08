@@ -9,65 +9,12 @@ import scala.xml.{ NodeSeq, Text }
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JE._
+import org.newsfromthestreets.comet._
+import com.fmpwizard.cometactor.pertab.namedactor.InsertNamedComet
+import com.fmpwizard.cometactor.pertab.namedactor.CometListerner
+import net.liftweb.actor.LiftActor
 
-class DetectiveModeSnippet {
-  def twoMoves(isDetective: Boolean): JsCmd = {
-    if (isDetective) {
-      SetHtml("labelMode", <span id="labelMode"> You are a Detective , press submit button to stop </span>) &
-        SetHtml("detectiveMap", <div id="map_canvas" style="width: 500px; height: 300px"></div>) &
-        SHtml.ajaxInvoke(() => {
-          JsRaw("initialize()")
-        }) &
-        Noop
 
-    } else {
-      SetHtml("labelMode", <span id="labelMode"> You are not a Detective , press submit button to start </span>) &
-        SetHtml("detectiveMap", <span id="detectiveMap"></span>) &
-        Noop
-    }
-  }
-
-  def detectiveButton(): JsCmd = {
-    var out: NodeSeq = <span id="detectiveMode"></span>
-    var start: Box[Boolean] = Empty
-    User.currentUser.map {
-      u =>
-        Detective.findByUser(u) match {
-          case Full(d) => {
-            start = Full(d.mode.is)
-            out =
-              <span id="detectiveMode">{
-                SHtml.ajaxButton(Text("Submit"), () => {
-                  d.setMode(!d.mode.is)
-                  Reload
-                })
-              } </span>
-
-          }
-          case _ => {
-
-            out = <span id="detectiveMode">{
-              SHtml.ajaxButton(Text("Be Detective"), () => {
-                Detective.addUser(u)
-                Reload
-              })
-            } </span>
-          }
-        }
-
-    }
-
-    start match {
-      case Full(d) => twoMoves(d) & SetHtml("detectiveMode", out)
-      case _ => SetHtml("detectiveMode", out)
-    }
-
-  }
-  def render(in: NodeSeq): NodeSeq = {
-    Script(OnLoad(detectiveButton()))
-
-  }
-}
 
 class SelectSearchGroup extends StatefulSnippet {
   var id = ""
@@ -78,8 +25,8 @@ class SelectSearchGroup extends StatefulSnippet {
     for {
       sg <- SearchGroup.find(id)
     } yield {
-      xhtml =  <ul id="listOfGroupMessages">
-                                           </ul>
+      xhtml = <ul id="listOfGroupMessages">
+              </ul>
 
     }
 
@@ -128,36 +75,37 @@ class SelectSearchGroup extends StatefulSnippet {
             (dig.searchgroup_id.toString, dig.getGroupName())
         }.toSeq ++ Seq(("None", "None"))
 
-        out = ("name=searchGroup" #> SHtml.ajaxSelect(ls, Full("None"), s => {
-          if (s == "None") {
-            DetectiveInGroup.findByDetective(detective).foreach(_.changeMode(false))
-          } else {
-            SearchGroup.find(s).map {
-              sg =>
-                DetectiveInGroup.findByDetectiveAndGroup(detective, sg).map {
-                  dig =>
-                    dig.changeModeToTrue
-                    id = dig.searchgroup_id.toString()
-                }
+        out = ("name=searchGroup" #>
+          SHtml.ajaxSelect(ls, Full("None"), s => {
+            if (s == "None") {
+              DetectiveInGroup.findByDetective(detective).foreach(_.changeMode(false))
+            } else {
+              SearchGroup.find(s).map {
+                sg =>
+                  DetectiveInGroup.findByDetectiveAndGroup(detective, sg).map {
+                    dig =>
+                      dig.changeModeToTrue
+                      id = dig.searchgroup_id.toString()
+                  }
+              }
+
             }
 
-          }
-
-          showMessages &
-            sendMessages
-        }))(in)
+            showMessages &
+              sendMessages
+          })).apply(in)
       }
     }
     out
   }
 }
 
-class AddButtonSearchGroup{
-   def render(in: NodeSeq): NodeSeq = {
-     SHtml.ajaxButton(Text("Add group"),()=>{
-       S.redirectTo("/searchgroup?q=add")
-     })
-   }
+class AddButtonSearchGroup {
+  def render(in: NodeSeq): NodeSeq = {
+    SHtml.ajaxButton(Text("Add group"), () => {
+      S.redirectTo("/searchgroup?q=add")
+    })
+  }
 }
 class AddSearchGroupSnippet {
 
@@ -198,52 +146,46 @@ class ShowSearchGroup {
         id =>
           SearchGroup.find(id).map {
             group =>
-              out = <div id="showGroup">
-                      <div id="map_canvas" style="width: 300px; height: 300px"></div>
-                      {
-                        <span id="groupName"> { group.name.is }</span>
-                        <br/>
-                        <span id="groupDescription">{ group.description.is } </span>
-                        <span id="numberOfDetectives">{ group.num.is } </span>
-                        <span id="admin">{
-                          group.getAdminUsername()
-                        } </span> ++ {
-                          for {
-                            user <- User.currentUser
-                            d <- user.getDetective
-                          } yield {
-                            DetectiveInGroup.findByDetectiveAndGroup(d, group).map {
-                              ding =>
-                                <span id="request"> {
-                                  if (ding.request.is == true && ding.blocked.is == false) {
-                                    SHtml.ajaxButton(Text("Get out!"), () => {
-                                      ding.delete()
-                                      Reload
-                                    })
-                                  } else if (ding.request.is == false && ding.blocked.is == false) {
+              out = (
+                "#groupName *" #> group.name.is &
+                "#groupName [href]" #> { "/searchgroup?q=show&id=" + group.id.is.toString() } &
+                "#groupDescription *" #> group.description.is &
+                "#numberOfDetectives *" #> group.num.is &
+                "#admin *" #> group.getAdminUsername())(in)
+              for {
+                user <- User.currentUser
+                d <- user.getDetective
+              } yield {
+                DetectiveInGroup.findByDetectiveAndGroup(d, group).map {
+                  ding =>
 
-                                    SHtml.ajaxButton(Text("Your request is proceeding do you want to cancel ?"), () => {
-                                      ding.delete()
-                                      Reload
-                                    })
-                                  } else {
-                                    <span>You have been blocked</span>
-                                  }
-                                }</span>
+                    if (ding.request.is == true && ding.blocked.is == false) {
+                      out = out ++ ("#request" #> SHtml.ajaxButton(Text("Get out!"), () => {
+                        ding.delete()
+                        Reload
+                      })).apply(in)
+                    } else if (ding.request.is == false && ding.blocked.is == false) {
 
-                            }.getOrElse {
-                              SHtml.ajaxButton(Text("Add me"), () => {
-                                DetectiveInGroup.add(d, group, false)
-                                Reload
-                              })
-                            }
-                          }
-                        }
-                      }
-                    </div>
+                      out = out ++ ("#request" #> SHtml.ajaxButton(Text("Your request is proceeding do you want to cancel ?"), () => {
+                        ding.delete()
+                        Reload
+                      })).apply(in)
+                    } else {
+                      out = out ++ <span>You have been blocked</span>
+                    }
+
+                }.getOrElse {
+                  out = out ++ ("#request" #>
+                    SHtml.ajaxButton(Text("Add me"), () => {
+                      DetectiveInGroup.add(d, group, false)
+                      Reload
+                    })).apply(in)
+                }
+              }
           }
       }
     }
+
     out
   }
 }
@@ -254,77 +196,116 @@ class ListOfSearchGroupYouAreAdmin {
       u <- User.currentUser
       d <- u.getDetective
     } yield {
-      out = <ul id="listOfSearchGroupYouAreAdmin">
-              {
-                SearchGroup.findByAdmin(d).map {
-                  group =>
-                    <li>{
-                      <a id="groupName" href={ "/searchgroup?q=show&id=" + group.id.is.toString() }>{
-                        group.name.is
-                      } </a> ++ <br/> ++
-                        <span id="groupDescription">{ group.description.is } </span> ++
-                        <span id="numberOfDetectives">{ group.num.is } </span> ++
-                        SHtml.ajaxButton(Text("Edit"), () => {
-                          S.redirectTo("/searchgroup?q=edit&id=" + group.id.is.toString())
-                          Reload
-                        }) ++
-                        SHtml.ajaxButton(Text("Delete"), () => {
-                          group.delete()
-                          Reload
-                        })
-                    }</li>
-                }
-              }
-            </ul>
+      out = ("#listOfSearchGroupYouAreAdmin" #> SearchGroup.findByAdmin(d).map {
+        group =>
+          ("li" #> {
+            ("#groupName *" #> group.name.is &
+              "#groupName [href]" #> { "/searchgroup?q=show&id=" + group.id.is.toString() } &
+              "#groupDescription *" #> group.description.is &
+              "#numberOfDetectives *" #> group.num.is)(in) ++
+              SHtml.ajaxButton(Text("Edit"), () => {
+                S.redirectTo("/searchgroup?q=edit&id=" + group.id.is.toString())
+                Reload
+              }) ++
+              SHtml.ajaxButton(Text("Delete"), () => {
+                group.delete()
+                Reload
+              })
+
+          }).apply(in)
+      }).apply(in)
     }
     out
   }
 }
 
-class ListOfSearchGroupDetectiveIsNotMember {
+class ShowActiveGroups {
+  def render(in: NodeSeq): NodeSeq = ("#listOfActiveGroups *" #>
+    {
+      SearchGroup.findActiveGroups().map {
+        sg =>
+          ("li" #>
+            {
+              ("#groupName *" #> sg.name.is &
+                "#groupName [href]" #> { "/searchgroup?q=show&id=" + sg.id.is.toString() } &
+                "#groupDescription *" #> sg.description.is &
+                "#numberOfDetectives *" #> sg.num.is)(in)
+            }).apply(in)
+      }
+    }).apply(in)
+}
+
+class ListOfGroupsUserIsNotMember {
 
   def render(in: NodeSeq): NodeSeq = {
     var out: NodeSeq = NodeSeq.Empty
     for {
       u <- User.currentUser
     } yield {
-      out = <ul id="listOfSearchGroupYouAreNotIn">{
+      out = ("#listOfGroupsUserIsNotMember *" #> {
         u.getDetective.map {
           d =>
-            SearchGroup.findByDetectiveNotIn(d).map {
+            SearchGroup.findByDetectiveAndRequest(d,false).map {
               sg =>
-                <li>
-                  <a id="name" href={ "/searchgroup?q=show&id=" + sg.id.is.toString() }> The title: { sg.name.is } </a><br/>
-                  <span id="admin">Name of the Admin: { sg.getAdminUsername() } </span>
-                  <span id="num"> Number of users: { sg.num.is } </span>
+                ("li" #>
                   {
-                    <span id="addMe"> {
-
+                    ("#groupName *" #> sg.name.is &
+                      "#groupName [href]" #> { "/searchgroup?q=show&id=" + sg.id.is.toString() } &
+                      "#groupDescription *" #> sg.description.is &
+                      "#numberOfDetectives *" #> sg.num.is)(in) ++
                       SHtml.ajaxButton(Text("Add me"), () => {
                         DetectiveInGroup.add(d, sg, false)
                         Reload
-                      })
+                      }, "id" -> "addMe")
 
-                    }</span>
-
-                  }
-                </li>
+                  }).apply(in)
             }
         }.getOrElse {
           SearchGroup.findAll.map {
             sg =>
-              <li>
-                <a id="name" href={ "/searchgroup?q=show&id=" + sg.id.is.toString() }> The title:{ sg.name.is } </a><br/>
-                <span id="admin">Name of the Admin: { sg.getAdminUsername() } </span>
-                <span id="num"> Number of users: { sg.num.is } </span>
-              </li>
+              ("li" #>
+                {
+                  ("#groupName *" #> sg.name.is &
+                    "#groupName [href]" #> { "/searchgroup?q=show&id=" + sg.id.is.toString() } &
+                    "#groupDescription *" #> sg.description.is &
+                    "#numberOfDetectives *" #> sg.num.is)(in)
+                }).apply(in)
           }
         }
-      }</ul>
+      }).apply(in)
     }
     out
   }
 }
+
+class ListOfGroupsUserIsMember{
+  def render(in:NodeSeq) ={
+     var out: NodeSeq = NodeSeq.Empty
+    for {
+      u <- User.currentUser
+    } yield {
+      out = ("#listOfGroupsUserIsMember *" #> {
+        u.getDetective.map {
+          d =>
+            SearchGroup.findByDetectiveAndRequest(d,true).map {
+              sg =>
+                ("li" #>
+                  {
+                    ("#groupName *" #> sg.name.is &
+                      "#groupName [href]" #> { "/searchgroup?q=show&id=" + sg.id.is.toString() } &
+                      "#groupDescription *" #> sg.description.is &
+                      "#admin *" #> sg.getAdminUsername() &
+                      "#numberOfDetectives *" #> sg.num.is).apply(in) 
+
+                  }).apply(in)
+            }
+        }.getOrElse{NodeSeq.Empty}
+      }).apply(in)
+    }
+    out
+  }
+}
+
 
 class ListOfDetectiveInGroup extends Loggable {
   def render(in: NodeSeq): NodeSeq = {
@@ -333,113 +314,129 @@ class ListOfDetectiveInGroup extends Loggable {
       user =>
         user.getDetective.map {
           detective =>
-            out = <ul id="listOfDetectiveInGroups">{
+            out = ("#listOfDetectiveInGroups *" #>
               DetectiveInGroup.findByDetective(detective).filter {
                 din => din.isDetectiveAdmin == false
               }.map {
                 ding =>
-                  <li>
-                    {
-                      ding.searchgroup_id.obj.map {
-                        sg =>
+                  ("li" #>
 
-                          <a id="name" href={ "/searchgroup?q=show&id=" + sg.id.is.toString() }> The title: { sg.name.is } </a> ++
-                            <br/> ++
-                            <span id="admin">Name of the Admin: { sg.getAdminUsername() } </span> ++
-                            <span id="num"> Number of users: { sg.num.is } </span>
+                    ding.searchgroup_id.obj.map {
+                      sg =>
 
-                      }.getOrElse(<span></span>) ++
-                        <span id="request"> {
-                          if (ding.request.is == true && ding.blocked.is == false) {
-                            SHtml.ajaxButton(Text("Get out!"), () => {
-                              ding.delete()
-                              Reload
-                            })
-                          } else if (ding.request.is == false && ding.blocked.is == false) {
+                        ("#groupName *" #> sg.name.is &
+                          "#groupName [href]" #> { "/searchgroup?q=show&id=" + sg.id.is.toString() } &
+                          "#groupDescription *" #> sg.description.is &
+                          "#numberOfDetectives *" #> sg.num.is &
+                          {
+                            if (ding.request.is == true && ding.blocked.is == false) {
+                              "#request" #> SHtml.ajaxButton(Text("Get out!"), () => {
+                                ding.delete()
+                                Reload
+                              })
+                            } else if (ding.request.is == false && ding.blocked.is == false) {
+                              "#request" #>
+                                SHtml.ajaxButton(Text("Your request is proceeding do you want to cancel ?"), () => {
+                                  ding.delete()
+                                  Reload
+                                })
+                            } else {
+                              "#request" #> <span>You have been blocked</span>
+                            }
+                          }).apply(in)
 
-                            SHtml.ajaxButton(Text("Your request is proceeding do you want to cancel ?"), () => {
-                              ding.delete()
-                              Reload
-                            })
-                          } else {
-                            <span>You have been blocked</span>
-                          }
-                        }</span>
+                    }.getOrElse(<span></span>)).apply(in)
+              }).apply(in)
 
-                    }
-                  </li>
-
-              }
-            }</ul>
         }
     }
     out
   }
 }
 
-class AdminSearchGroup extends StatefulSnippet with Loggable {
-  var id = S.param("id").getOrElse("")
-  var q = S.param("q").getOrElse("")
-  var name = ""
-  var description = ""
-  var searchGroup = SearchGroup.find(id)
-
-  def listOfAddedDetectives(sg: SearchGroup): NodeSeq = {
-
-    <ul id="listOfAddedDetectives">{
-      DetectiveInGroup.findBySearchGroupAndRequest(sg, true).map {
-        dig =>
-          if (dig.detective_id.is != sg.admin_id.is) {
-            <li>
-              <span id="username">{ dig.getDetectiveUserName() } </span>
-              {
-                SHtml.ajaxButton(Text("Block"), () => {
-                  dig.blockTheUser()
-                  Reload
-                }) ++
-                  SHtml.ajaxButton(Text("Delete"), () => {
-                    dig.delete()
-                    Reload
-                  })
-              }
-            </li>
-          }
-
-      }
-    }</ul>
-
-  }
-
-  def listOfRequests(sg: SearchGroup): NodeSeq = {
-
-    <ul id="listOfRequests">{
-      DetectiveInGroup.findBySearchGroupAndRequest(sg, false).map {
-        dig =>
-          <li>
-            <span id="username">{ dig.getDetectiveUserName() } </span>
-            {
-              if (dig.blocked.is) {
-                SHtml.ajaxButton(Text("Unblock"), () => {
-                  dig.unblockTheUser()
-                  Reload
-                })
+class ListOfSearchGroupMembers {
+  def render(in: NodeSeq): NodeSeq = {
+    val id = S.param("id").getOrElse("")
+    val q = S.param("q").getOrElse("")
+    var out = NodeSeq.Empty
+    if (q == "edit") {
+      for {
+        sg <- SearchGroup.find(id)
+      } yield {
+        out = ("#listOfSearchGroupMembers *" #>
+          DetectiveInGroup.findBySearchGroupAndRequest(sg, true).map {
+            dig =>
+              if (dig.detective_id.is != sg.admin_id.is) {
+                ("li" #>
+                  {
+                    ("#username *" #> dig.getDetectiveUserName()).apply(in) ++
+                      SHtml.ajaxButton(Text("Block"), () => {
+                        dig.blockTheUser()
+                        Reload
+                      }) ++
+                      SHtml.ajaxButton(Text("Delete"), () => {
+                        dig.delete()
+                        Reload
+                      })
+                  }).apply(in)
               } else {
-                SHtml.ajaxButton(Text("Accept"), () => {
-                  dig.acceptRequest()
-                  Reload
-                })
+                NodeSeq.Empty
               }
-            }
-          </li>
 
+          } & ClearClearable).apply(in)
       }
-    }</ul>
-
+    }
+    out
   }
+}
 
-  def dispatch = { case "render" => render }
+class ListOfRequests {
+  def render(in: NodeSeq): NodeSeq = {
+    val id = S.param("id").getOrElse("")
+    val q = S.param("q").getOrElse("")
+    var out = NodeSeq.Empty
+    if (q == "edit") {
+      for {
+        sg <- SearchGroup.find(id)
+      } yield {
+        out = ("#listOfRequests *" #>
+          {
+            DetectiveInGroup.findBySearchGroupAndRequest(sg, false).map {
+              dig =>
+                ("li" #>
+                  {
+                    ("#username *" #> dig.getDetectiveUserName()).apply(in) ++
+                      {
+                        if (dig.blocked.is) {
+                          SHtml.ajaxButton(Text("Unblock"), () => {
+                            dig.unblockTheUser()
+                            Reload
+                          })
+                        } else {
+                          SHtml.ajaxButton(Text("Accept"), () => {
+                            dig.acceptRequest()
+                            Reload
+                          })
+                        }
+                      }
+                  }).apply(in)
+
+            }
+          } & ClearClearable).apply(in)
+      }
+    }
+    out
+  }
+}
+
+class AdminSearchGroup {
 
   def render(in: NodeSeq): NodeSeq = {
+    var id = S.param("id").getOrElse("")
+    var q = S.param("q").getOrElse("")
+    var name = ""
+    var description = ""
+    var searchGroup = SearchGroup.find(id)
     var out: NodeSeq = NodeSeq.Empty
     if (q == "edit") {
       for {
@@ -450,17 +447,14 @@ class AdminSearchGroup extends StatefulSnippet with Loggable {
         if (sg.admin_id.toString() == detective.id.is.toString()) {
           name = sg.name.is
           description = sg.description.is
-          out = listOfAddedDetectives(sg) ++
-            <br/> ++
-            listOfRequests(sg) ++
-            <br/> ++
+          out =
             ("name=name" #> SHtml.text(name, name = _, "id" -> "the_name") &
               "name=description" #> SHtml.textarea(description, description = _, "id" -> "the_description") &
               "type=submit" #> SHtml.onSubmitUnit(() => {
                 sg.edit(name, description)
                 S.redirectTo("/searchgroup?q=show&id=" + sg.id.is.toString)
 
-              }))(in)
+              })).apply(in)
         }
       }
     }
@@ -470,13 +464,28 @@ class AdminSearchGroup extends StatefulSnippet with Loggable {
 
 }
 
-class SearchGroupMessenger {
+class SearchGroupMessengerComet extends InsertNamedComet with Loggable {
+  override lazy val name = S.param("id") openOr ("")
+  override lazy val cometClass = "SearchGroupChat"
+
+}
+
+class SearchGroupMessenger extends Loggable {
 
   def render(in: NodeSeq): NodeSeq = {
     var id = S.param("id").getOrElse("")
     val num = S.param("num").getOrElse("")
     val q = S.param("q").getOrElse("")
     var message = ""
+
+    CometListerner.listenerFor(Full(id)) match {
+                case a: LiftActor => {
+                  logger.info("We send the id=" + id)
+                  a ! Messages(id,10)
+                
+                }
+                case _ => logger.info("No actor to send an update")
+              }
 
     var out: NodeSeq = <span></span>
     if (q == "show") {
@@ -487,15 +496,23 @@ class SearchGroupMessenger {
         dig <- DetectiveInGroup.findByDetectiveAndGroup(detective, sg)
       } yield {
         if (dig.request.is == true) {
-          out = <ul id="listOfGroupMessages"></ul> ++ (
+          out = (
             "#message" #> SHtml.ajaxText("", s => {
               message = s
             }) &
             "#send" #> SHtml.ajaxButton(Text("Send"), () => {
               SearchGroupMessage.add(sg, detective, message)
+              CometListerner.listenerFor(Full(sg.id.toString)) match {
+                case a: LiftActor => {
+                  logger.info("We send the id=" + sg.id.toString)
+                  a ! Messages(sg.id.toString,10)
+                
+                }
+                case _ => logger.info("No actor to send an update")
+              }
 
               SetValById("message", "")
-            }))(in)
+            })).apply(in)
         }
       }
     }
@@ -503,20 +520,6 @@ class SearchGroupMessenger {
   }
 }
 
-class ShowActiveGroups {
-  def render = <ul id="listOfActiveGroups">
-                 {
-                   SearchGroup.findActiveGroups().map {
-                     sg =>
-                       <li>
-                         <a id="name" href={ "/searchgroup?q=show&id=" + sg.id.is.toString() }> The title:{ sg.name.is } </a><br/>
-                         <span id="admin">Name of the Admin: { sg.getAdminUsername() } </span>
-                         <span id="num"> Number of users: { sg.num.is } </span>
-                       </li>
-                   }
-                 }
-               </ul>
-}
 
 
 

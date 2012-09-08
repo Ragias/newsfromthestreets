@@ -1,168 +1,30 @@
 <div >
 
-	<h2>Detective</h2>
-	<span id="detectiveMap"></span>
-	<span id="labelMode"> </span>
+	<h2>Show All Detectives</h2>
+	
+	<div id="map_canvas" style="width: 300px; height: 300px"></div>
 	<br/>
-	<span id="detectiveMode"> </span>
 	<span id="currentLat"> </span>
 	<span id="currentLon"> </span>
-	<div class="lift:DetectiveModeSnippet"></div>
-	<ul id="listOfGroupMessages"></ul>
-	<ul id="listOfMessages"></ul>
-	<div id="sendMessages"></div>
-
-	<div class="lift:SelectSearchGroup">
-		Search Group:
-		<select name="searchGroup" id="the_searchGroup"></select>
+		
+	<h3>List of groups you are in</h3>	
+	<div class="lift:ListOfGroupsUserIsMember">
+		<ul  id="listOfGroupsUserIsMember">
+			<li class="clearable">
+				<a class="clearable" id="groupName"></a>
+				<article class="clearable" id="groupDescription" ></article>
+				<span class="clearable" id="numberOfDetectives"></span>
+				<span class="clearable" id="admin"></span>
+				<span class="clearable" id="request"></span>
+			</li>
+		</ul>
 	</div>
 
 	<script>
-		var map;
-		var markerArr = new Array();
-		function showGroupMessages() {
-			var searchGroupStr = $("#the_searchGroup option:selected").attr('value');
-			if (searchGroupStr) {
-				$.getJSON("/api/newsfromthestreets/searchgroupmessenger/" + searchGroupStr + "/20", function(json) {
-					$('#listOfGroupMessages').empty();
-					for (var i = 0; i <= json.length - 1; i++) {
-						$('#listOfGroupMessages').append($('<li>').append($('<span>').append(json[i].username + " : " + json[i].message)));
-					}
-				});
-			}
-			setTimeout(arguments.callee, 1000);
-
-		}
-
-		function initialize() {
-
-			var watch;
-			var mapOptions = {
-				zoom : 6,
-				mapTypeId : google.maps.MapTypeId.ROADMAP
-			};
-			map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
-			// Try HTML5 geolocation
-			if (navigator.geolocation) {
-
-				navigator.geolocation.watchPosition(function(position) {
-					var pos = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-					map.setCenter(pos);
-
-					document.getElementById('currentLat').innerHTML = position.coords.latitude;
-					document.getElementById('currentLon').innerHTML = position.coords.longitude;
-
-					$.ajax({
-						url : "/api/newsfromthestreets/detective",
-						type : "PUT",
-						dataType : 'json',
-						contentType : 'application/json',
-						data : JSON.stringify({
-							"latlng" : {
-								"lat" : position.coords.latitude,
-								"long" : position.coords.longitude
-							}
-						})
-					});
-					var checkJson = (function() {
-						var searchGroupStr = $("#the_searchGroup option:selected").attr('value');
-
-						$.getJSON("/api/newsfromthestreets/searchgroup/" + searchGroupStr, function(json) {
-
-							if (json.length > 0) {
-								for ( i = 0; i < json.length; i++) {
-									var location = json[i].latlng;
-									addMarker(location);
-								}
-							}
-							if (json.length < markerArr.length) {
-								if (!markerArr.isEmpty) {
-									while (markerArr[0]) {
-										markerArr.pop().setMap(null);
-									}
-								}
-							}
-
-						});
-
-						setTimeout(arguments.callee, 1000);
-
-					});
-					checkJson();
-				}, function() {
-					handleNoGeolocation(true);
-				}, {
-					enableHighAccuracy : true,
-					maximumAge : 100000,
-					timeout : 100000
-				});
-
-			} else {
-				alert("aaa");
-				// Browser doesn't support Geolocation
-				handleNoGeolocation(false);
-			}
-
-			function addMarker(location) {
-
-				var check = false;
-				for ( i = 0; i < markerArr.length; i++) {
-					//console.log(markerArr[i].title + " " + location.user_id + " " + markerArr.length +
-					//" lat " + location.lat + " long "+ location.long)
-					if (markerArr[i].id == location.id) {
-						check = true;
-
-						if (location.lat == markerArr[i].position.lat() && location.long == markerArr[i].position.lng()) {
-							break;
-						}
-						var point = new google.maps.LatLng(location.lat, location.long);
-
-						var marker = new google.maps.Marker({
-							position : point,
-							map : map,
-							title : location.username,
-							id : location.id
-						});
-						markerArr[i].setMap(null)
-						markerArr[i] = marker;
-						break;
-					}
-				}
-				if (!check) {
-					//console.log(location.title)
-					var point = new google.maps.LatLng(location.lat, location.long);
-
-					var marker = new google.maps.Marker({
-						position : point,
-						map : map,
-						title : location.username,
-						id : location.id
-					});
-					markerArr.push(marker);
-				}
-
-			};
-		};
-
-		function handleNoGeolocation(errorFlag) {
-			if (errorFlag) {
-				var content = 'Error: The Geolocation service failed.';
-			} else {
-				var content = 'Error: Your browser doesn\'t support geolocation.';
-			}
-
-			var options = {
-				map : map,
-				position : new google.maps.LatLng(60, 105),
-				content : content
-			};
-
-			var infowindow = new google.maps.InfoWindow(options);
-			map.setCenter(options.position);
-		}
-
-
-		google.maps.event.addDomListener(window, 'load', initialize);
-		showGroupMessages();
+		
+	function initialize(){
+		forDetectives("None");
+	}
+	
 	</script>
 </div>
